@@ -10,7 +10,7 @@
       "qty": 2,
       "unitPrice": 1200,
       "currency": "JPY",
-      "image": "assets/images/chawawa-miyajima.jpg",
+      "image": "https://res.cloudinary.com/lwq0ys1w/image/upload/v1789883227/tripcart/products/oiapkbabyahzhaitnfsq.jpg",
       "status": "pending"
     },
     {
@@ -23,7 +23,7 @@
       "qty": 1,
       "unitPrice": 800,
       "currency": "JPY",
-      "image": "assets/images/fujiiya-miyajima.jpeg",
+      "image": "https://res.cloudinary.com/lwq0ys1w/image/upload/v1789883227/tripcart/products/sgvdkrjvlpgvz9rblyrj.jpg",
       "status": "pending"
     },
     {
@@ -36,7 +36,7 @@
       "qty": 2,
       "unitPrice": 1600,
       "currency": "JPY",
-      "image": "assets/images/press-butter-sand.jpeg",
+      "image": "https://res.cloudinary.com/lwq0ys1w/image/upload/v1789883228/tripcart/products/anl1ndboidloejodrwvd.jpg",
       "status": "done"
     },
     {
@@ -49,7 +49,7 @@
       "qty": 3,
       "unitPrice": 350,
       "currency": "JPY",
-      "image": "assets/images/hattendo.jpeg",
+      "image": "https://res.cloudinary.com/lwq0ys1w/image/upload/v1789883228/tripcart/products/uxcvvi3luezf44tqkw08.jpg",
       "status": "pending"
     },
     {
@@ -62,7 +62,7 @@
       "qty": 1,
       "unitPrice": 980,
       "currency": "JPY",
-      "image": "assets/images/fukujuen.jpg",
+      "image": "https://res.cloudinary.com/lwq0ys1w/image/upload/v1789883229/tripcart/products/q90x48wgs8zhcmqmi5nx.jpg",
       "status": "pending"
     },
     {
@@ -75,7 +75,7 @@
       "qty": 1,
       "unitPrice": 1700,
       "currency": "JPY",
-      "image": "assets/images/okayama-butter.jpg",
+      "image": "https://res.cloudinary.com/lwq0ys1w/image/upload/v1789883230/tripcart/products/aeemnnznghe6562tetxo.jpg",
       "status": "pending"
     }
   ]
