@@ -948,7 +948,7 @@ async function handleSubmit(event) {
     let imageUrl = state.imageData || "";
     if (state.imageFile) imageUrl = await uploadImageToCloudinary(state.imageFile);
     const data = {
-      id: $("itemId").value || "item-" + Date.now(),
+      id: state.editingId || $("itemId").value || "item-" + Date.now(),
       locationId: state.editingLocationId || "",
       nameJa: $("nameJa").value.trim(),
       description: $("description").value.trim(),
@@ -960,7 +960,7 @@ async function handleSubmit(event) {
       region: $("region").value.trim(),
       location: $("location").value.trim(),
       mapsUrl: $("mapsUrl").value.trim(),
-      status: state.products.find((product) => product.id === $("itemId").value)?.status || "pending",
+      status: state.products.find((product) => product.id === (state.editingId || $("itemId").value))?.status || "pending",
       image: imageUrl,
       lat: 34.3977,
       lng: 132.4759
