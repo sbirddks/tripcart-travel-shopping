@@ -2,6 +2,17 @@ export const state = {
   products: [],
   trips: [],
   tripDetails: [],
+  meals: [],
+  mealPeople: [],
+  mealPeopleByTrip: {},
+  mealFormParticipants: [],
+  mealTripId: "",
+  activePage: "trips",
+  tripEditorMode: false,
+  tripEditorStep: "header",
+  tripListCollapsed: false,
+  tripEditorDraft: null,
+  tripSelectionTouched: false,
   trip: "all",
   region: "all",
   search: "",
@@ -21,5 +32,6 @@ export const remote = {
   config: {},
   client: null,
   channel: null,
-  tripDataLoaded: false
+  tripDataLoaded: false,
+  mealDataLoaded: false
 };

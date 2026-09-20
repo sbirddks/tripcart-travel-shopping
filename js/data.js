@@ -37,25 +37,33 @@ export function remoteTripDetailFromRow(row) {
       packedTransport = {};
     }
   }
+  const hasPackedTransport = Object.keys(packedTransport).length > 0;
   return {
     id: row.id,
     tripId: row.trip_id,
-    date: row.date || row.start_date || "",
+    // Spreadsheet dates such as "5月14日(二)" are preserved in the packed
+    // editor payload because Supabase date columns only accept ISO dates.
+    date: row.date || row.start_date || packedTransport.dateLabel || "",
     location: row.location || (attractionParts.length > 1 ? attractionParts.shift() : ""),
     period: row.period || packedTransport.period || "",
     time: row.time || packedTransport.time || "",
     activity: row.activity || (attractionParts.length > 1 ? attractionParts.join("｜") : attraction),
-    route: row.route || packedTransport.route || transportDetailRaw,
+    route: row.route || packedTransport.route || (hasPackedTransport ? "" : transportDetailRaw),
     transport: row.transport || row.transport_type || "",
     attraction: row.attraction || "",
     startDate: row.start_date || "",
     endDate: row.end_date || "",
     transportType: row.transport_type || "",
-    transportDetail: row.transport_detail || "",
+    transportDetail: hasPackedTransport ? (packedTransport.route || "") : (row.transport_detail || ""),
     cost: Number(row.cost || 0),
     currency: row.currency || "JPY",
     sortOrder: Number(row.sort_order || 0)
   };
+}
+
+function supabaseDateOrNull(value) {
+  const text = String(value || "").trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : null;
 }
 
 export function remoteProductFromRow(row) {
@@ -98,23 +106,37 @@ export function ensureTripsFromProducts(products = state.products) {
 
 export async function loadTripsFromJson() {
   try {
-    const [tripResponse, detailResponse] = await Promise.all([
+    const [tripResponse, detailResponse, sheetResponse] = await Promise.all([
       fetch("data/trips.json"),
-      fetch("data/trip-details.json")
+      fetch("data/trip-details.json"),
+      fetch("data/sheet-itinerary.json")
     ]);
-    if (!tripResponse.ok || !detailResponse.ok) return [];
+    if (!tripResponse.ok || !detailResponse.ok || !sheetResponse.ok) return [];
     const tripData = await tripResponse.json();
     const detailData = await detailResponse.json();
+    const sheetData = await sheetResponse.json();
+    const localTrips = [...(tripData.trips || []), ...(sheetData.trip ? [sheetData.trip] : [])];
+    const localDetails = [...(detailData.details || []), ...(sheetData.details || [])];
+    let savedTrips = null;
+    let savedDetails = null;
     state.trips = tripData.trips || [];
     state.tripDetails = detailData.details || [];
     try {
-      const savedTrips = JSON.parse(localStorage.getItem("tripcart-trips") || "null");
-      const savedDetails = JSON.parse(localStorage.getItem("tripcart-trip-details") || "null");
-      if (Array.isArray(savedTrips)) state.trips = savedTrips;
-      if (Array.isArray(savedDetails)) state.tripDetails = savedDetails;
+      savedTrips = JSON.parse(localStorage.getItem("tripcart-trips") || "null");
+      savedDetails = JSON.parse(localStorage.getItem("tripcart-trip-details") || "null");
     } catch (error) {
       console.warn("Unable to read local trip data", error);
     }
+    const tripMap = new Map(localTrips.map((trip) => [trip.id, trip]));
+    const detailMap = new Map(localDetails.map((detail) => [detail.id, detail]));
+    if (Array.isArray(savedTrips)) savedTrips.forEach((trip) => tripMap.set(trip.id, trip));
+    if (Array.isArray(savedDetails)) savedDetails.forEach((detail) => detailMap.set(detail.id, detail));
+    if (remote.tripDataLoaded) {
+      state.trips.forEach((trip) => tripMap.set(trip.id, trip));
+      state.tripDetails.forEach((detail) => detailMap.set(detail.id, detail));
+    }
+    state.trips = Array.from(tripMap.values());
+    state.tripDetails = Array.from(detailMap.values());
     return state.trips;
   } catch (error) {
     state.trips = [];
@@ -146,9 +168,21 @@ export async function loadRemoteProducts() {
       remote.client.from("trip_details").select("id,trip_id,attraction,start_date,end_date,transport_type,transport_detail,cost,currency,sort_order").order("sort_order", { ascending: true })
     ]);
     if (!tripResult.error && !detailResult.error) {
-      state.trips = (tripResult.data || []).map(remoteTripFromRow);
-      state.tripDetails = (detailResult.data || []).map(remoteTripDetailFromRow);
+      const remoteTrips = (tripResult.data || []).map(remoteTripFromRow);
+      const remoteDetails = (detailResult.data || []).map(remoteTripDetailFromRow);
+      state.trips = remoteTrips;
+      state.tripDetails = remoteDetails;
       remote.tripDataLoaded = true;
+      // The boot flow and the auth session callback can load local seed data
+      // concurrently. Merge the captured remote rows after local loading so
+      // the final state cannot regress to a local-only trip label.
+      await loadTripsFromJson();
+      const tripMap = new Map(state.trips.map((trip) => [trip.id, trip]));
+      const detailMap = new Map(state.tripDetails.map((detail) => [detail.id, detail]));
+      remoteTrips.forEach((trip) => tripMap.set(trip.id, trip));
+      remoteDetails.forEach((detail) => detailMap.set(detail.id, detail));
+      state.trips = Array.from(tripMap.values());
+      state.tripDetails = Array.from(detailMap.values());
     } else {
       remote.tripDataLoaded = false;
       ensureTripsFromProducts(products);
@@ -157,6 +191,7 @@ export async function loadRemoteProducts() {
     remote.tripDataLoaded = false;
     ensureTripsFromProducts(products);
   }
+  if (!remote.tripDataLoaded) await loadTripsFromJson();
   ensureTripsFromProducts(products);
   return products;
 }
@@ -181,6 +216,8 @@ export function subscribeToRemoteChanges(onRefresh) {
     .on("postgres_changes", { event: "*", schema: "public", table: "locations" }, onRefresh)
     .on("postgres_changes", { event: "*", schema: "public", table: "trips" }, onRefresh)
     .on("postgres_changes", { event: "*", schema: "public", table: "trip_details" }, onRefresh)
+    .on("postgres_changes", { event: "*", schema: "public", table: "meal_people" }, onRefresh)
+    .on("postgres_changes", { event: "*", schema: "public", table: "meal_expenses" }, onRefresh)
     .subscribe();
 }
 
@@ -252,6 +289,169 @@ export function saveTripsLocally() {
     localStorage.setItem("tripcart-trip-details", JSON.stringify(state.tripDetails));
   } catch (error) {
     console.warn("Unable to save local trip data", error);
+  }
+}
+
+export function loadMealPlansLocally() {
+  try {
+    const savedMeals = JSON.parse(localStorage.getItem("tripcart-meals") || "null");
+    const savedPeople = JSON.parse(localStorage.getItem("tripcart-meal-people") || "null");
+    if (Array.isArray(savedMeals)) state.meals = savedMeals;
+    if (Array.isArray(savedPeople)) {
+      state.mealPeople = savedPeople;
+      state.mealPeopleByTrip = {};
+    }
+  } catch (error) {
+    console.warn("Unable to read local meal data", error);
+  }
+}
+
+export function saveMealPlansLocally() {
+  try {
+    localStorage.setItem("tripcart-meals", JSON.stringify(state.meals));
+    localStorage.setItem("tripcart-meal-people", JSON.stringify(state.mealPeople));
+  } catch (error) {
+    console.warn("Unable to save local meal data", error);
+  }
+}
+
+function parseParticipants(value) {
+  if (Array.isArray(value)) return value.map((person) => String(person));
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed.map((person) => String(person)) : [];
+    } catch (error) {
+      return [];
+    }
+  }
+  return [];
+}
+
+export function remoteMealFromRow(row) {
+  return {
+    id: row.id,
+    tripId: row.trip_id || "",
+    date: row.expense_date || "",
+    mealType: row.expense_type || "用餐",
+    place: row.place || "",
+    amount: Number(row.amount || 0),
+    currency: row.currency || "JPY",
+    payer: row.payer || "",
+    paidAmount: Number(row.paid_amount ?? row.amount ?? 0),
+    participants: parseParticipants(row.participants),
+    note: row.note || ""
+  };
+}
+
+export async function loadMealPlansFromRemote() {
+  if (!remoteReady()) return false;
+  const [mealResult, peopleResult] = await Promise.all([
+    remote.client
+      .from("meal_expenses")
+      .select("id,trip_id,expense_date,expense_type,place,amount,currency,payer,paid_amount,participants,note")
+      .order("expense_date", { ascending: true }),
+    remote.client
+      .from("meal_people")
+      .select("trip_id,name,sort_order")
+      .order("sort_order", { ascending: true })
+  ]);
+  if (mealResult.error) throw mealResult.error;
+  if (peopleResult.error) throw peopleResult.error;
+  state.meals = (mealResult.data || []).map(remoteMealFromRow);
+  state.mealPeopleByTrip = (peopleResult.data || []).reduce((groups, row) => {
+    if (!row.trip_id || !row.name) return groups;
+    groups[row.trip_id] = groups[row.trip_id] || [];
+    groups[row.trip_id].push(row.name);
+    return groups;
+  }, {});
+  const selectedTripId = state.mealTripId || state.editingTripId || state.trips[0]?.id || "";
+  state.mealPeople = state.mealPeopleByTrip[selectedTripId] || [];
+  remote.mealDataLoaded = true;
+  return true;
+}
+
+export async function saveMealPeopleToRemote(tripId, people = []) {
+  if (!remoteReady() || !tripId) return;
+  await ensureTripHeaderToRemote(state.trips.find((trip) => trip.id === tripId));
+  const { error: deleteError } = await remote.client
+    .from("meal_people")
+    .delete()
+    .eq("trip_id", tripId);
+  if (deleteError) throw deleteError;
+  const rows = Array.from(new Set(people.map((person) => String(person).trim()).filter(Boolean)))
+    .map((name, index) => ({
+      id: `meal-person-${slugifyTrip(tripId)}-${slugifyTrip(name)}`,
+      trip_id: tripId,
+      name,
+      sort_order: index
+    }));
+  if (!rows.length) return;
+  const { error } = await remote.client.from("meal_people").insert(rows);
+  if (error) throw error;
+}
+
+export async function saveMealToRemote(record) {
+  if (!remoteReady()) return;
+  await ensureTripHeaderToRemote(state.trips.find((trip) => trip.id === record.tripId));
+  const row = {
+    id: record.id,
+    trip_id: record.tripId,
+    expense_date: record.date || null,
+    expense_type: record.mealType || "用餐",
+    place: record.place || record.restaurant || "",
+    amount: Number(record.amount || 0),
+    currency: record.currency || "JPY",
+    payer: record.payer || "",
+    paid_amount: Number(record.paidAmount ?? record.amount ?? 0),
+    participants: Array.isArray(record.participants) ? record.participants : [],
+    note: record.note || ""
+  };
+  const { error } = await remote.client.from("meal_expenses").upsert(row);
+  if (error) throw error;
+}
+
+async function ensureTripHeaderToRemote(trip) {
+  if (!remoteReady() || !trip?.id) return;
+  const { error } = await remote.client.from("trips").upsert({
+    id: trip.id,
+    name: trip.name || "",
+    start_date: trip.startDate || null,
+    end_date: trip.endDate || null,
+    primary_location: trip.primaryLocation || ""
+  });
+  if (error) throw error;
+}
+
+export async function deleteMealFromRemote(id) {
+  if (!remoteReady() || !id) return;
+  const { error } = await remote.client.from("meal_expenses").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export function saveTripDraftLocally(draft) {
+  try {
+    localStorage.setItem("tripcart-trip-draft", JSON.stringify(draft));
+  } catch (error) {
+    console.warn("Unable to save local trip draft", error);
+  }
+}
+
+export function loadTripDraftLocally() {
+  try {
+    const draft = JSON.parse(localStorage.getItem("tripcart-trip-draft") || "null");
+    return draft && typeof draft === "object" ? draft : null;
+  } catch (error) {
+    console.warn("Unable to read local trip draft", error);
+    return null;
+  }
+}
+
+export function clearTripDraftLocally() {
+  try {
+    localStorage.removeItem("tripcart-trip-draft");
+  } catch (error) {
+    console.warn("Unable to clear local trip draft", error);
   }
 }
 
@@ -328,14 +528,17 @@ export async function saveTripToRemote(trip, details) {
       attraction: detail.location && detail.activity
         ? detail.location + "｜" + detail.activity
         : (detail.activity || detail.location || detail.attraction || ""),
-      start_date: detail.date || detail.startDate || null,
-      end_date: detail.date || detail.endDate || null,
+      // Do not send spreadsheet-only labels such as "5月14日(二)" to a
+      // Postgres date column. The label is retained in transport_detail below.
+      start_date: supabaseDateOrNull(detail.date || detail.startDate),
+      end_date: supabaseDateOrNull(detail.date || detail.endDate),
       transport_type: detail.transport || detail.transportType || "",
-      transport_detail: detail.period || detail.time
+      transport_detail: detail.period || detail.time || detail.date
         ? JSON.stringify({
             route: detail.route || detail.transportDetail || "",
             period: detail.period || "",
-            time: detail.time || ""
+            time: detail.time || "",
+            dateLabel: detail.date || ""
           })
         : (detail.route || detail.transportDetail || ""),
       cost: Number(detail.cost || 0),

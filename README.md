@@ -12,6 +12,7 @@
 - `data/supabase.json`：Supabase 專案 URL 與 publishable key；publishable key 可放在前端，但不可放 service role key。
 - `supabase/schema.sql`：Supabase 資料表、RLS 權限、Realtime 與初始資料腳本。
 - `supabase/trips-migration.txt`：已建立既有 Supabase 專案時，新增旅程資料表所使用的一次性更新 SQL。
+- `supabase/meal-finance-migration.sql`：既有專案新增用餐、購物、玩樂、門票與共同成員同步所使用的一次性更新 SQL。
 
 啟用 Supabase 後，Supabase 是多人共享資料的主要來源；訪客可查看資料，登入後才能新增、編輯或刪除。若 Supabase 暫時無法連線，頁面會退回 JSON 與 localStorage 的本機模式。
 
@@ -28,7 +29,7 @@
 
 ## Supabase 多人共享設定
 
-1. 新專案可在 Supabase SQL Editor 執行 `supabase/schema.sql`；既有專案執行 `supabase/trips-migration.txt`。
+1. 新專案可在 Supabase SQL Editor 執行 `supabase/schema.sql`；既有專案執行 `supabase/trips-migration.txt` 與 `supabase/meal-finance-migration.sql`。
 2. 確認 `data/supabase.json` 的 URL 與 publishable key 對應目前專案。
 3. 網站右上角註冊／登入帳號；完成登入後即可共享編輯。
 4. Supabase Authentication → Sign In / Providers 請關閉 `Confirm email`，讓註冊後可以立即登入。

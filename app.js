@@ -13,6 +13,8 @@ import {
 import { loadCloudinaryConfig } from "./js/cloudinary.js";
 import {
   ensureTripsFromProducts,
+  loadMealPlansLocally,
+  loadMealPlansFromRemote,
   loadProducts,
   loadTripsFromJson,
   refreshRemoteProducts,
@@ -32,17 +34,34 @@ import {
 import {
   addTripDetail,
   closeTripPage,
+  closeTripEditor,
   editTrip,
+  goToTripStep,
   handleTripSubmit,
   newTripEditor,
   openTripPage,
   removeTripDetail,
   renderTripPage,
+  saveCurrentTripDraft,
+  selectTrip,
+  toggleTripList,
   updateTripDetailField
 } from "./js/trips.js";
+import {
+  editMeal,
+  handleMealAction,
+  handleMealSubmit,
+  renderMealPage,
+  resetMealForm,
+  saveMealPeople
+} from "./js/meals.js";
 import { demoNear, enableReminder } from "./js/reminders.js";
 
 function bindEvents() {
+  document.querySelectorAll(".main-nav-item").forEach((button) => {
+    button.addEventListener("click", () => activatePage(button.dataset.page));
+  });
+
   $("tripFilter").addEventListener("change", (event) => {
     state.trip = event.target.value;
     state.region = "all";
@@ -72,18 +91,32 @@ function bindEvents() {
 
   $("resetFilters").addEventListener("click", resetFilters);
   $("addItem").addEventListener("click", () => openDrawer());
-  $("tripManager").addEventListener("click", openTripPage);
-  $("backToProducts").addEventListener("click", closeTripPage);
+  $("tripManager").addEventListener("click", () => activatePage("trips"));
+  $("backToProducts").addEventListener("click", () => activatePage("shopping"));
   $("newTrip").addEventListener("click", newTripEditor);
+  $("closeTripEditor").addEventListener("click", closeTripEditor);
+  $("toggleTripList").addEventListener("click", toggleTripList);
+  $("tripHeaderStep").addEventListener("click", () => goToTripStep("header"));
+  $("tripDailyStep").addEventListener("click", () => goToTripStep("daily"));
+  $("tripNextStep").addEventListener("click", () => goToTripStep("daily"));
+  $("tripBackToHeader").addEventListener("click", () => goToTripStep("header"));
 
   $("tripList").addEventListener("click", (event) => {
     const action = event.target.closest("[data-trip-action]");
-    if (action?.dataset.tripAction === "edit") editTrip(action.dataset.tripId);
+    if (!action) return;
+    if (action.dataset.tripAction === "view") selectTrip(action.dataset.tripId);
+    if (action.dataset.tripAction === "edit") editTrip(action.dataset.tripId);
+  });
+  $("tripViewer").addEventListener("click", (event) => {
+    const action = event.target.closest('[data-trip-action="edit"]');
+    if (action) editTrip(action.dataset.tripId);
   });
   $("addTripDetail").addEventListener("click", addTripDetail);
   $("tripDetailsRows").addEventListener("input", updateTripDetailField);
   $("tripDetailsRows").addEventListener("change", updateTripDetailField);
   $("tripDetailsRows").addEventListener("click", removeTripDetail);
+  $("tripForm").addEventListener("input", saveCurrentTripDraft);
+  $("tripForm").addEventListener("change", saveCurrentTripDraft);
   $("tripForm").addEventListener("submit", handleTripSubmit);
 
   $("trip").addEventListener("change", (event) => {
@@ -125,6 +158,35 @@ function bindEvents() {
     }
   });
   $("itemForm").addEventListener("submit", handleSubmit);
+
+  $("mealTripFilter").addEventListener("change", (event) => {
+    state.mealTripId = event.target.value;
+    state.mealFormParticipants = [];
+    resetMealForm();
+    renderMealPage();
+  });
+  $("saveMealPeople").addEventListener("click", saveMealPeople);
+  $("resetMealForm").addEventListener("click", resetMealForm);
+  $("mealForm").addEventListener("submit", handleMealSubmit);
+  $("mealRecords").addEventListener("click", handleMealAction);
+}
+
+function activatePage(page) {
+  state.activePage = page;
+  $("tripPage").hidden = page !== "trips";
+  $("productsPage").hidden = page !== "shopping";
+  $("mealPage").hidden = page !== "meals";
+  document.querySelectorAll(".main-nav-item").forEach((button) => {
+    button.classList.toggle("active", button.dataset.page === page);
+  });
+
+  if (page === "trips") openTripPage();
+  if (page === "shopping") {
+    closeTripPage();
+    render();
+  }
+  if (page === "meals") renderMealPage();
+  window.scrollTo({ top: 0, behavior: "auto" });
 }
 
 function uniqueRegions() {
@@ -138,6 +200,12 @@ async function handleSessionChange({ session }) {
       initFilters();
       render();
     });
+    try {
+      await loadMealPlansFromRemote();
+      renderMealPage();
+    } catch (error) {
+      console.warn("Unable to refresh shared meal data", error);
+    }
   }
   render();
 }
@@ -149,17 +217,32 @@ async function boot() {
     await initAuth({ onSessionChange: handleSessionChange });
     updateAuthUI();
     state.products = await loadProducts();
-    if (!remote.tripDataLoaded) await loadTripsFromJson();
+    await loadTripsFromJson();
     ensureTripsFromProducts(state.products);
+    loadMealPlansLocally();
+    if (remoteReady()) {
+      try {
+        await loadMealPlansFromRemote();
+      } catch (error) {
+        console.warn("Unable to load shared meal data; using local meal data", error);
+      }
+    }
     initFilters();
     render();
     renderTripPage();
+    renderMealPage();
+    activatePage("trips");
     subscribeToRemoteChanges(() => {
       if (!state.editingId && !state.editingTripId) {
         refreshRemoteProducts("旅伴已更新共享資料", () => {
           initFilters();
           render();
         });
+        if (remote.mealDataLoaded) {
+          loadMealPlansFromRemote()
+            .then(() => renderMealPage())
+            .catch((error) => console.warn("Unable to refresh shared meal data", error));
+        }
       }
     });
   } catch (error) {

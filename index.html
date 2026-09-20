@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="TripCart 旅遊購物清單網頁原型">
-    <title>TripCart 旅遊購物清單</title>
+    <meta name="description" content="生命會自己尋找出路｜旅程、購物與用餐分攤管理">
+    <title>生命會自己尋找出路</title>
     <link rel="stylesheet" href="styles.css">
     <link
       rel="icon"
@@ -17,10 +17,10 @@
     <div class="app">
       <header class="topbar">
         <div class="brand">
-          <div class="logo">T</div>
+          <div class="logo">↝</div>
           <div>
-            <h1>旅途購物清單</h1>
-            <small>TripCart · 旅行中的購買計畫</small>
+            <h1>生命會自己尋找出路</h1>
+            <small>旅程、購物與旅伴分攤管理</small>
           </div>
         </div>
 
@@ -36,8 +36,20 @@
         </div>
       </header>
 
+      <nav class="main-nav" aria-label="主要功能">
+        <button class="main-nav-item active" id="navTripList" data-page="trips" type="button">
+          <span>01</span>旅程列表
+        </button>
+        <button class="main-nav-item" id="navShopping" data-page="shopping" type="button">
+          <span>02</span>旅程購物清單
+        </button>
+        <button class="main-nav-item" id="navMeals" data-page="meals" type="button">
+          <span>03</span>用餐財務管理
+        </button>
+      </nav>
+
       <main class="main">
-        <section id="productsPage">
+        <section id="productsPage" hidden>
           <section class="toolbar" aria-label="清單篩選與操作">
             <div class="control">
               <label for="tripFilter">旅程</label>
@@ -60,7 +72,7 @@
             <div class="catalog">
               <div class="section-head">
                 <div>
-                  <h2>購買清單</h2>
+                <h2>旅程購物清單</h2>
                   <p id="resultText">讀取商品資料中…</p>
                 </div>
                 <div class="summary">
@@ -122,85 +134,197 @@
           </section>
         </section>
 
-        <section class="trip-page" id="tripPage" hidden>
+        <section class="trip-page" id="tripPage">
           <div class="trip-page-head">
             <div>
-              <h2>旅程編輯</h2>
-              <p>按照日期與時間整理每一段安排，讓旅途中打開就能照著走。</p>
+              <span class="eyebrow">Trip list</span>
+              <h2>旅程列表</h2>
+              <p>選擇一趟旅程，先看完整安排；需要修改時再進入旅程管理。</p>
             </div>
-            <button class="outline" id="backToProducts" type="button">返回購買清單</button>
+            <button class="outline" id="backToProducts" type="button">前往旅程購物清單</button>
           </div>
 
           <div class="trip-layout">
             <aside class="trip-list-panel">
               <div class="trip-list-head">
                 <h3>旅程列表</h3>
-                <button class="primary" id="newTrip" type="button">＋ 新增旅程</button>
+                <div class="trip-list-head-actions">
+                  <button class="primary" id="newTrip" type="button">＋ 新增旅程</button>
+                  <button class="trip-list-toggle" id="toggleTripList" type="button" aria-expanded="true" aria-label="收折旅程列表">收折</button>
+                </div>
               </div>
               <div class="trip-list" id="tripList">
                 <div class="empty">讀取旅程資料中…</div>
               </div>
             </aside>
 
-            <section class="trip-editor">
+            <section class="trip-content">
+              <section class="trip-viewer" id="tripViewer">
+                <div class="empty">選擇左側旅程查看完整行程。</div>
+              </section>
+
+              <section class="trip-editor" id="tripEditor" hidden>
               <div class="trip-editor-head">
                 <div>
                   <span class="eyebrow">旅程設定</span>
                   <h3 id="tripFormTitle">新增旅程</h3>
                 </div>
-                <span class="editor-state">編輯中</span>
+                <div class="editor-tools">
+                  <span class="editor-state">編輯中</span>
+                  <span class="trip-draft-status" id="tripDraftStatus">草稿未暫存</span>
+                  <button class="link" id="closeTripEditor" type="button">完成管理</button>
+                </div>
               </div>
-              <p class="trip-editor-note">上方是旅程基本資料，下方每一張卡片代表行程表中的一段安排。</p>
+              <p class="trip-editor-note">先完成 Header 基本資料，再進入 Daily plan 編排整天行程；輸入內容會即時保留為本機草稿。</p>
 
               <form id="tripForm">
                 <input type="hidden" id="tripId">
 
-                <div class="trip-overview-card">
-                  <div class="overview-heading">
-                    <div>
-                      <span class="eyebrow">Overview</span>
-                      <strong>先定義這趟旅程</strong>
+                <div class="trip-editor-steps" role="tablist" aria-label="旅程編輯步驟">
+                  <button class="trip-step-button active" id="tripHeaderStep" type="button" role="tab" aria-selected="true">
+                    <span>01</span><strong>Header</strong><small>旅程基本資料</small>
+                  </button>
+                  <span class="trip-step-connector" aria-hidden="true">→</span>
+                  <button class="trip-step-button" id="tripDailyStep" type="button" role="tab" aria-selected="false">
+                    <span>02</span><strong>Daily plan</strong><small>每日行程明細</small>
+                  </button>
+                </div>
+
+                <section class="trip-editor-step-panel" id="tripHeaderStepPanel" role="tabpanel">
+                  <div class="trip-overview-card">
+                    <div class="overview-heading">
+                      <div>
+                        <span class="eyebrow">Overview</span>
+                        <strong>先定義這趟旅程</strong>
+                      </div>
+                      <span class="overview-hint">Header</span>
                     </div>
-                    <span class="overview-hint">Header</span>
+                    <div class="form-grid">
+                      <div class="field full">
+                        <label for="tripName">旅程名稱 <span class="required">必填</span></label>
+                        <input id="tripName" required placeholder="例如：廣島 3 天 2 夜">
+                      </div>
+                      <div class="field">
+                        <label for="tripStartDate">日期・起日</label>
+                        <input id="tripStartDate" type="date">
+                      </div>
+                      <div class="field">
+                        <label for="tripEndDate">日期・迄日</label>
+                        <input id="tripEndDate" type="date">
+                      </div>
+                      <div class="field full">
+                        <label for="tripPrimaryLocation">主要地點（廣域）</label>
+                        <input id="tripPrimaryLocation" placeholder="例如：廣島、岡山">
+                      </div>
+                    </div>
                   </div>
-                  <div class="form-grid">
-                  <div class="field full">
-                    <label for="tripName">旅程名稱 <span class="required">必填</span></label>
-                    <input id="tripName" required placeholder="例如：廣島 3 天 2 夜">
+                  <div class="trip-form-actions">
+                    <button class="primary" id="tripNextStep" type="button">下一步：Daily plan</button>
                   </div>
-                  <div class="field">
-                    <label for="tripStartDate">日期・起日</label>
-                    <input id="tripStartDate" type="date">
-                  </div>
-                  <div class="field">
-                    <label for="tripEndDate">日期・迄日</label>
-                    <input id="tripEndDate" type="date">
-                  </div>
-                  <div class="field full">
-                    <label for="tripPrimaryLocation">主要地點（廣域）</label>
-                    <input id="tripPrimaryLocation" placeholder="例如：廣島、岡山">
-                  </div>
-                  </div>
-                </div>
+                </section>
 
-                <div class="trip-details-head">
-                  <div>
-                    <span class="eyebrow">Daily plan</span>
-                    <h4>行程明細</h4>
-                  </div>
-                  <button class="outline" id="addTripDetail" type="button">＋ 新增一段行程</button>
-                </div>
-                <div class="detail-column-guide" aria-hidden="true">
-                  <span>日期・地點</span>
-                  <span>時段・時間</span>
-                  <span>行程與移動方式</span>
-                </div>
-                <div id="tripDetailsRows"></div>
+                <section class="trip-editor-step-panel" id="tripDailyStepPanel" role="tabpanel" hidden>
+                  <details class="trip-draft-preview" id="tripDraftPreview" open>
+                    <summary><span>即時草稿列表</span><small id="tripDraftPreviewStatus">0 段行程 · 輸入時自動暫存</small></summary>
+                    <div id="tripDraftPreviewRows"></div>
+                  </details>
 
-                <div class="trip-form-actions">
-                  <button class="primary" type="submit">儲存旅程</button>
+                  <div class="trip-details-head">
+                    <div>
+                      <span class="eyebrow">Daily plan</span>
+                      <h4>行程明細</h4>
+                    </div>
+                    <button class="outline" id="addTripDetail" type="button">＋ 新增一段行程</button>
+                  </div>
+                  <div class="detail-column-guide" aria-hidden="true">
+                    <span>日期・地點</span>
+                    <span>時段・時間</span>
+                    <span>行程與移動方式</span>
+                  </div>
+                  <div id="tripDetailsRows"></div>
+
+                  <div class="trip-form-actions">
+                    <button class="outline" id="tripBackToHeader" type="button">返回 Header</button>
+                    <button class="primary" type="submit">儲存整天行程</button>
+                  </div>
                 </div>
               </form>
+              </section>
+            </section>
+          </div>
+        </section>
+
+        <section class="meal-page" id="mealPage" hidden>
+          <div class="trip-page-head meal-page-head">
+            <div>
+              <span class="eyebrow">Shared table</span>
+              <h2>用餐財務管理</h2>
+              <p>規劃用餐、購物、玩樂或門票支出，再記下付款人與分攤成員，日後結算更清楚。</p>
+            </div>
+            <div class="meal-page-status">本機草稿 · 確認流程後再接共享同步</div>
+          </div>
+
+          <div class="meal-layout">
+            <aside class="meal-plan-panel">
+              <div class="meal-panel-heading">
+                <span class="eyebrow">Trip setup</span>
+                <h3>這次跟誰一起吃？</h3>
+              </div>
+              <div class="field">
+                <label for="mealTripFilter">旅程</label>
+                <select id="mealTripFilter"></select>
+              </div>
+              <div class="field">
+                <label for="mealPeople">共同成員</label>
+                <textarea id="mealPeople" rows="5" placeholder="每行一位，例如：\n小明\n小美\n小華"></textarea>
+                <span class="field-help">可用換行、逗號分隔。付款人與分攤對象會從這裡產生。</span>
+              </div>
+              <button class="primary full-button" id="saveMealPeople" type="button">儲存共同成員</button>
+              <div class="meal-side-note">每筆消費可指定主要付款人與實際參與分攤的人數，系統會依參與人數平均計算。</div>
+            </aside>
+
+            <section class="meal-content">
+              <div class="meal-summary-grid">
+                <div class="meal-summary-card"><span>目前旅程</span><strong id="mealTripLabel">—</strong></div>
+                <div class="meal-summary-card"><span>消費筆數</span><strong id="mealCount">0</strong></div>
+                <div class="meal-summary-card"><span>分攤金額</span><strong id="mealTotal">—</strong></div>
+                <div class="meal-summary-card"><span>每人平均</span><strong id="mealAverage">—</strong></div>
+              </div>
+
+              <section class="meal-form-card">
+                <div class="meal-form-head">
+                  <div>
+                    <span class="eyebrow">Meal plan</span>
+                    <h3 id="mealFormTitle">新增消費紀錄</h3>
+                  </div>
+                  <button class="outline" id="resetMealForm" type="button">清除表單</button>
+                </div>
+                <form id="mealForm">
+                  <input type="hidden" id="mealId">
+                  <div class="meal-form-grid">
+                    <div class="field"><label for="mealDate">日期</label><input id="mealDate" type="date"></div>
+                    <div class="field"><label for="mealType">類型</label><select id="mealType"><option selected>用餐</option><option>購物</option><option>玩樂</option><option>門票</option></select></div>
+                    <div class="field"><label for="mealRestaurant">地點 <span class="required">必填</span></label><input id="mealRestaurant" required placeholder="例如：宮島牡蠣餐廳、AEON商場"></div>
+                    <div class="field"><label for="mealAmount">總共消費金額</label><input id="mealAmount" type="number" min="0" step="1" placeholder="尚未知道可留白"></div>
+                    <div class="field"><label for="mealCurrency">貨幣</label><select id="mealCurrency"><option selected>JPY</option><option>TWD</option><option>USD</option></select></div>
+                    <div class="field"><label for="mealPayer">主要付款人</label><select id="mealPayer"><option value="">請先設定成員</option></select></div>
+                    <div class="field"><label for="mealPaidAmount">付款金額</label><input id="mealPaidAmount" type="number" min="0" step="1" placeholder="留白時同總共消費金額"></div>
+                    <div class="field"><label>分攤成員</label><div class="participant-checks" id="mealParticipants"></div></div>
+                    <div class="field full"><label for="mealNote">備註</label><textarea id="mealNote" rows="2" placeholder="預約時間、必點菜色或其他備註"></textarea></div>
+                  </div>
+                  <div class="meal-form-actions"><button class="primary" id="saveMeal" type="submit">儲存消費紀錄</button></div>
+                </form>
+              </section>
+
+              <section class="meal-records-card">
+                <div class="meal-records-head"><div><span class="eyebrow">Records</span><h3>消費規劃與支出</h3></div><span class="meal-records-hint">可依每筆消費調整分攤成員</span></div>
+                <div id="mealRecords"></div>
+              </section>
+
+              <section class="settlement-card">
+                <div class="meal-records-head"><div><span class="eyebrow">Settlement</span><h3>日後分攤試算</h3></div><span class="meal-records-hint">付款金額 − 個人應分</span></div>
+                <div id="mealSettlement"></div>
+              </section>
             </section>
           </div>
         </section>
