@@ -33,12 +33,6 @@ function cloudinaryReady() {
 }
 
 async function loadProducts() {
-  try {
-    const saved = localStorage.getItem("tripcart-products");
-    if (saved) return JSON.parse(saved);
-  } catch (error) {
-    console.warn("Unable to read local product data", error);
-  }
   const responses = await Promise.all([
     fetch("data/locations.json"),
     fetch("data/products.json")
@@ -49,7 +43,34 @@ async function loadProducts() {
   const locations = (await responses[0].json()).locations || [];
   const products = (await responses[1].json()).products || [];
   const locationMap = Object.fromEntries(locations.map((location) => [location.id, location]));
-  return products.map((product) => Object.assign({}, product, locationMap[product.locationId] || {}));
+  const canonicalProducts = products.map((product) => {
+    const locationDetails = Object.assign({}, locationMap[product.locationId] || {});
+    delete locationDetails.id;
+    return Object.assign({}, product, locationDetails);
+  });
+  const canonicalById = new Map(canonicalProducts.map((product) => [product.id, product]));
+
+  try {
+    const saved = localStorage.getItem("tripcart-products");
+    if (saved) {
+      const savedProducts = JSON.parse(saved);
+      if (Array.isArray(savedProducts)) {
+        const normalizedProducts = savedProducts.map((product) => {
+          const canonicalProduct = canonicalById.get(product.id);
+          const image = typeof product.image === "string" && product.image.startsWith("https://res.cloudinary.com/")
+            ? product.image
+            : canonicalProduct?.image || "";
+          return Object.assign({}, canonicalProduct || {}, product, { image });
+        });
+        localStorage.setItem("tripcart-products", JSON.stringify(normalizedProducts));
+        return normalizedProducts;
+      }
+    }
+  } catch (error) {
+    console.warn("Unable to read local product data", error);
+  }
+
+  return canonicalProducts;
 }
 
 function saveProducts() {
