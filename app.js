@@ -154,9 +154,9 @@ async function handleAuth(action) {
   } catch (error) {
     const code = error?.code || error?.name;
     const message = code === "email_not_confirmed"
-      ? "專案目前仍要求 Email 驗證，請在 Supabase Auth 關閉 Confirm email 後再試。"
+      ? "此帳號目前無法登入，請確認 Email 與密碼；若是舊帳號，請重新註冊。"
       : code === "invalid_credentials"
-        ? "登入資訊不正確。第一次使用請按「註冊」；若剛註冊，請先完成 Email 驗證。"
+        ? "登入資訊不正確。請確認 Email 與密碼；第一次使用請先按「註冊」。"
         : code === "signup_disabled"
           ? "目前專案暫停註冊，請在 Supabase Auth 開啟 Allow new users to sign up。"
           : error.message || "登入失敗，請確認帳號資料。";
