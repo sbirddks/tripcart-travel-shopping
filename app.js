@@ -556,7 +556,7 @@ function openDrawer(id) {
   }
   $("drawerTitle").textContent = id ? "編輯商品" : "新增商品";
   $("deleteFromDrawer").style.visibility = id ? "visible" : "hidden";
-  $("itemId").value = product.id || "";
+  $("itemId").value = id || product.id || "";
   $("nameJa").value = product.nameJa || "";
   $("description").value = product.description || "";
   $("qty").value = product.qty ?? "";
