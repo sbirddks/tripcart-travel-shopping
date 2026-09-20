@@ -690,6 +690,66 @@ button {
   font-size: 13px;
 }
 
+.eyebrow {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--blue);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.editor-state,
+.overview-hint {
+  padding: 5px 8px;
+  color: var(--green);
+  font-size: 10px;
+  font-weight: 900;
+  background: var(--green-bg);
+  border-radius: 999px;
+}
+
+.trip-overview-card {
+  padding: 16px 17px 2px;
+  background: linear-gradient(135deg, #f7fbff 0%, #fff 72%);
+  border: 1px solid #d9e6f4;
+  border-radius: 13px;
+}
+
+.overview-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.overview-heading strong {
+  display: block;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.overview-heading .overview-hint {
+  color: #5a7290;
+  background: #edf4fb;
+}
+
+.detail-column-guide {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr 1.5fr;
+  gap: 12px;
+  margin: 0 4px 7px 48px;
+  color: #8a9aab;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.detail-column-guide span:last-child {
+  padding-left: 2px;
+}
+
 .trip-details-head button {
   height: 32px;
   padding: 0 10px;
@@ -697,19 +757,159 @@ button {
 }
 
 .trip-detail-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 12px;
   margin-bottom: 11px;
-  padding: 13px;
+  padding: 15px 16px 15px 12px;
   background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  border: 1px solid #dce6ef;
+  border-radius: 14px;
+  box-shadow: 0 7px 18px rgba(25, 50, 77, 0.035);
+}
+
+.detail-row-marker {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 9px;
+  padding-top: 2px;
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.detail-row-marker span {
+  display: grid;
+  place-items: center;
+  width: 29px;
+  height: 29px;
+  background: #edf4ff;
+  border-radius: 10px;
+}
+
+.detail-row-marker i {
+  width: 1px;
+  flex: 1;
+  min-height: 60px;
+  background: linear-gradient(#c7d9ee, transparent);
+}
+
+.detail-row-content {
+  min-width: 0;
 }
 
 .detail-row-head {
   margin-bottom: 10px;
+  align-items: start;
 }
 
-.detail-row-head strong,
+.detail-row-head strong {
+  display: block;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.detail-row-head span {
+  display: block;
+  margin-top: 3px;
+  color: #93a0ae;
+  font-size: 10px;
+}
+
 .detail-row-head .danger {
+  margin-top: 2px;
+  font-size: 11px;
+}
+
+.detail-grid-primary {
+  grid-template-columns: 1.15fr 1.15fr 0.85fr 0.85fr;
+  gap: 10px;
+}
+
+.detail-route-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(150px, 0.75fr);
+  gap: 10px;
+}
+
+.detail-activity-field,
+.detail-route-grid .field {
+  margin-bottom: 10px;
+}
+
+.detail-activity-field textarea,
+.detail-route-grid textarea {
+  min-height: 57px;
+}
+
+.detail-grid-primary .field,
+.detail-extra-grid .field {
+  margin-bottom: 10px;
+}
+
+.detail-extra {
+  margin-top: 1px;
+  border-top: 1px solid #edf1f5;
+}
+
+.detail-extra summary {
+  padding-top: 10px;
+  color: #6f8094;
+  font-size: 10px;
+  font-weight: 900;
+  cursor: pointer;
+  list-style: none;
+}
+
+.detail-extra summary::-webkit-details-marker {
+  display: none;
+}
+
+.detail-extra summary::before {
+  display: inline-block;
+  margin-right: 6px;
+  content: "+";
+  color: var(--blue);
+  font-size: 13px;
+}
+
+.detail-extra[open] summary::before {
+  content: "−";
+}
+
+.detail-extra summary span {
+  margin-left: 6px;
+  color: #a1adba;
+  font-weight: 700;
+}
+
+.detail-extra-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding-top: 11px;
+}
+
+.detail-empty {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 6px;
+  padding: 28px 20px;
+  color: var(--muted);
+  text-align: center;
+  border: 1px dashed #bacbdd;
+  border-radius: 13px;
+}
+
+.detail-empty strong {
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.detail-empty span {
   font-size: 11px;
 }
 
@@ -1056,6 +1256,20 @@ button {
   .form-grid,
   .detail-grid {
     grid-template-columns: 1fr;
+  }
+
+  .detail-column-guide {
+    display: none;
+  }
+
+  .detail-route-grid {
+    display: block;
+  }
+
+  .trip-detail-row {
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 8px;
+    padding-right: 11px;
   }
 
   .field.full {

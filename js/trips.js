@@ -14,15 +14,35 @@ export function blankTripDetail() {
   return {
     id: "",
     tripId: state.editingTripId || "",
-    attraction: "",
-    startDate: "",
-    endDate: "",
-    transportType: "",
-    transportDetail: "",
+    date: "",
+    location: "",
+    period: "",
+    time: "",
+    activity: "",
+    route: "",
+    transport: "",
     cost: "",
     currency: "JPY",
     sortOrder: state.tripEditorDetails.length
   };
+}
+
+function normalizeTripDetail(detail = {}, index = 0) {
+  const legacyAttraction = String(detail.attraction || "");
+  const parts = legacyAttraction.split("｜");
+  return Object.assign({}, detail, {
+    id: detail.id || "",
+    date: detail.date || detail.startDate || "",
+    location: detail.location || (parts.length > 1 ? parts.shift() : ""),
+    period: detail.period || "",
+    time: detail.time || "",
+    activity: detail.activity || (parts.length > 1 ? parts.join("｜") : legacyAttraction),
+    route: detail.route || detail.transportDetail || "",
+    transport: detail.transport || detail.transportType || "",
+    cost: detail.cost ?? "",
+    currency: detail.currency || "JPY",
+    sortOrder: detail.sortOrder ?? index
+  });
 }
 
 export function renderTripList() {
@@ -44,51 +64,80 @@ export function renderTripList() {
 }
 
 function tripDetailHtml(detail, index) {
-  const transportOptions = ["", "飛機", "巴士", "JR", "地鐵", "計程車", "步行", "其他"];
+  const transportOptions = ["", "步行", "JR", "新幹線", "巴士", "市內循環巴士", "路面電車", "渡輪", "纜車", "腳踏車", "計程車", "其他"];
   const transportSelect = transportOptions.map((option) =>
-    `<option value="${escapeHtml(option)}"${detail.transportType === option ? " selected" : ""}>${escapeHtml(option || "請選擇")}</option>`
+    `<option value="${escapeHtml(option)}"${detail.transport === option ? " selected" : ""}>${escapeHtml(option || "請選擇交通方式")}</option>`
   ).join("");
+  const periodOptions = ["", "早上", "上午", "中午", "下午", "晚上", "早餐", "午餐", "晚餐", "其他"];
+  const periodSelect = periodOptions.map((option) =>
+    `<option value="${escapeHtml(option)}"${detail.period === option ? " selected" : ""}>${escapeHtml(option || "請選擇時段")}</option>`
+  ).join("");
+  const number = String(index + 1).padStart(2, "0");
 
-  return `<div class="trip-detail-row" data-detail-index="${index}">
-    <div class="detail-row-head">
-      <strong>明細 ${index + 1}</strong>
-      <button type="button" class="danger remove-detail" data-detail-action="remove">移除</button>
+  return `<article class="trip-detail-row" data-detail-index="${index}">
+    <div class="detail-row-marker" aria-hidden="true">
+      <span>${number}</span>
+      <i></i>
     </div>
-    <div class="detail-grid">
-      <div class="field full">
-        <label>主要景點（都市或景點名稱）</label>
-        <input data-detail-field="attraction" value="${escapeHtml(detail.attraction)}" placeholder="例如：宮島、岡山城">
+    <div class="detail-row-content">
+      <div class="detail-row-head">
+        <div>
+          <strong>行程 ${number}</strong>
+          <span>一段可執行的安排</span>
+        </div>
+        <button type="button" class="danger remove-detail" data-detail-action="remove">移除</button>
       </div>
-      <div class="field">
-        <label>起日</label>
-        <input type="date" data-detail-field="startDate" value="${escapeHtml(detail.startDate)}">
+      <div class="detail-grid detail-grid-primary">
+        <div class="field">
+          <label>日期</label>
+          <input data-detail-field="date" value="${escapeHtml(detail.date)}" placeholder="例如：5月14日（二）">
+        </div>
+        <div class="field">
+          <label>地點</label>
+          <input data-detail-field="location" value="${escapeHtml(detail.location)}" placeholder="例如：宮島、岡山">
+        </div>
+        <div class="field">
+          <label>時段</label>
+          <select data-detail-field="period">${periodSelect}</select>
+        </div>
+        <div class="field">
+          <label>時間</label>
+          <input data-detail-field="time" value="${escapeHtml(detail.time)}" placeholder="例如：15:00 或 15點00分">
+        </div>
       </div>
-      <div class="field">
-        <label>迄日</label>
-        <input type="date" data-detail-field="endDate" value="${escapeHtml(detail.endDate)}">
+      <div class="field detail-activity-field">
+        <label>行程 <span>這段要做什麼</span></label>
+        <textarea data-detail-field="activity" rows="2" placeholder="例如：到達岡山車站，轉搭新幹線到廣島車站">${escapeHtml(detail.activity)}</textarea>
       </div>
-      <div class="field">
-        <label>交通方式</label>
-        <select data-detail-field="transportType">${transportSelect}</select>
+      <div class="detail-route-grid">
+        <div class="field">
+          <label>路線走法 <span>轉乘、出口或備註</span></label>
+          <textarea data-detail-field="route" rows="2" placeholder="例如：JR 岡山站；車站東口往 JR 中央口">${escapeHtml(detail.route)}</textarea>
+        </div>
+        <div class="field">
+          <label>交通方式</label>
+          <select data-detail-field="transport">${transportSelect}</select>
+        </div>
       </div>
-      <div class="field">
-        <label>航班／班次／備註</label>
-        <input data-detail-field="transportDetail" value="${escapeHtml(detail.transportDetail)}" placeholder="例如：JL 258、快速列車">
-      </div>
-      <div class="field">
-        <label>費用</label>
-        <input type="number" min="0" step="1" data-detail-field="cost" value="${escapeHtml(detail.cost ?? "")}" placeholder="選填">
-      </div>
-      <div class="field">
-        <label>貨幣</label>
-        <select data-detail-field="currency">
-          <option value="JPY"${detail.currency === "JPY" ? " selected" : ""}>JPY</option>
-          <option value="TWD"${detail.currency === "TWD" ? " selected" : ""}>TWD</option>
-          <option value="USD"${detail.currency === "USD" ? " selected" : ""}>USD</option>
-        </select>
-      </div>
+      <details class="detail-extra">
+        <summary>進階資訊 <span>費用與貨幣</span></summary>
+        <div class="detail-extra-grid">
+          <div class="field">
+            <label>預估費用</label>
+            <input type="number" min="0" step="1" data-detail-field="cost" value="${escapeHtml(detail.cost ?? "")}" placeholder="選填">
+          </div>
+          <div class="field">
+            <label>貨幣</label>
+            <select data-detail-field="currency">
+              <option value="JPY"${detail.currency === "JPY" ? " selected" : ""}>JPY</option>
+              <option value="TWD"${detail.currency === "TWD" ? " selected" : ""}>TWD</option>
+              <option value="USD"${detail.currency === "USD" ? " selected" : ""}>USD</option>
+            </select>
+          </div>
+        </div>
+      </details>
     </div>
-  </div>`;
+  </article>`;
 }
 
 export function renderTripPage() {
@@ -100,7 +149,9 @@ export function renderTripPage() {
   $("tripStartDate").value = trip?.startDate || "";
   $("tripEndDate").value = trip?.endDate || "";
   $("tripPrimaryLocation").value = trip?.primaryLocation || "";
-  $("tripDetailsRows").innerHTML = state.tripEditorDetails.map(tripDetailHtml).join("");
+  $("tripDetailsRows").innerHTML = state.tripEditorDetails.length
+    ? state.tripEditorDetails.map((detail, index) => tripDetailHtml(normalizeTripDetail(detail, index), index)).join("")
+    : '<div class="detail-empty"><strong>還沒有行程段落</strong><span>按右上角「新增一段行程」開始安排。</span></div>';
 }
 
 export function openTripPage() {
@@ -110,7 +161,7 @@ export function openTripPage() {
     state.editingTripId = state.trips[0].id;
     state.tripEditorDetails = state.tripDetails
       .filter((detail) => detail.tripId === state.editingTripId)
-      .map((detail) => Object.assign({}, detail));
+      .map(normalizeTripDetail);
   }
   renderTripPage();
 }
@@ -134,7 +185,7 @@ export function editTrip(id) {
   state.editingTripId = id;
   state.tripEditorDetails = state.tripDetails
     .filter((detail) => detail.tripId === id)
-    .map((detail) => Object.assign({}, detail));
+    .map(normalizeTripDetail);
   if (!state.tripEditorDetails.length) state.tripEditorDetails = [blankTripDetail()];
   renderTripPage();
 }
@@ -180,7 +231,17 @@ export async function handleTripSubmit(event) {
     primaryLocation: $("tripPrimaryLocation").value.trim()
   };
   const details = state.tripEditorDetails.map((detail, index) =>
-    Object.assign({}, detail, { tripId: trip.id, sortOrder: index })
+    Object.assign({}, normalizeTripDetail(detail, index), {
+      tripId: trip.id,
+      sortOrder: index,
+      startDate: detail.date || detail.startDate || "",
+      endDate: detail.date || detail.endDate || "",
+      attraction: detail.location && detail.activity
+        ? detail.location + "｜" + detail.activity
+        : (detail.activity || detail.location || ""),
+      transportType: detail.transport || detail.transportType || "",
+      transportDetail: detail.route || detail.transportDetail || ""
+    })
   );
 
   try {
@@ -207,7 +268,7 @@ export async function handleTripSubmit(event) {
     state.editingTripId = trip.id;
     state.tripEditorDetails = state.tripDetails
       .filter((detail) => detail.tripId === trip.id)
-      .map((detail) => Object.assign({}, detail));
+      .map(normalizeTripDetail);
     ensureTripsFromProducts(state.products);
     initFilters();
     renderTripPage();

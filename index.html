@@ -126,7 +126,7 @@
           <div class="trip-page-head">
             <div>
               <h2>旅程編輯</h2>
-              <p>先建立旅程主資料，再在下方加入主要景點、日期、交通方式與費用明細。</p>
+              <p>按照日期與時間整理每一段安排，讓旅途中打開就能照著走。</p>
             </div>
             <button class="outline" id="backToProducts" type="button">返回購買清單</button>
           </div>
@@ -144,14 +144,26 @@
 
             <section class="trip-editor">
               <div class="trip-editor-head">
-                <h3 id="tripFormTitle">新增旅程</h3>
+                <div>
+                  <span class="eyebrow">旅程設定</span>
+                  <h3 id="tripFormTitle">新增旅程</h3>
+                </div>
+                <span class="editor-state">編輯中</span>
               </div>
-              <p class="trip-editor-note">旅程名稱、日期與主要地點屬於 header；景點與交通安排屬於 detail。</p>
+              <p class="trip-editor-note">上方是旅程基本資料，下方每一張卡片代表行程表中的一段安排。</p>
 
               <form id="tripForm">
                 <input type="hidden" id="tripId">
 
-                <div class="form-grid">
+                <div class="trip-overview-card">
+                  <div class="overview-heading">
+                    <div>
+                      <span class="eyebrow">Overview</span>
+                      <strong>先定義這趟旅程</strong>
+                    </div>
+                    <span class="overview-hint">Header</span>
+                  </div>
+                  <div class="form-grid">
                   <div class="field full">
                     <label for="tripName">旅程名稱 <span class="required">必填</span></label>
                     <input id="tripName" required placeholder="例如：廣島 3 天 2 夜">
@@ -168,11 +180,20 @@
                     <label for="tripPrimaryLocation">主要地點（廣域）</label>
                     <input id="tripPrimaryLocation" placeholder="例如：廣島、岡山">
                   </div>
+                  </div>
                 </div>
 
                 <div class="trip-details-head">
-                  <h4>關聯 detail・行程明細</h4>
-                  <button class="outline" id="addTripDetail" type="button">＋ 新增明細</button>
+                  <div>
+                    <span class="eyebrow">Daily plan</span>
+                    <h4>行程明細</h4>
+                  </div>
+                  <button class="outline" id="addTripDetail" type="button">＋ 新增一段行程</button>
+                </div>
+                <div class="detail-column-guide" aria-hidden="true">
+                  <span>日期・地點</span>
+                  <span>時段・時間</span>
+                  <span>行程與移動方式</span>
                 </div>
                 <div id="tripDetailsRows"></div>
 

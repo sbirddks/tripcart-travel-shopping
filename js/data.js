@@ -26,9 +26,27 @@ export function remoteTripFromRow(row) {
 }
 
 export function remoteTripDetailFromRow(row) {
+  const attraction = String(row.attraction || "");
+  const attractionParts = attraction.split("｜");
+  const transportDetailRaw = String(row.transport_detail || "");
+  let packedTransport = {};
+  if (transportDetailRaw.startsWith("{")) {
+    try {
+      packedTransport = JSON.parse(transportDetailRaw);
+    } catch (error) {
+      packedTransport = {};
+    }
+  }
   return {
     id: row.id,
     tripId: row.trip_id,
+    date: row.date || row.start_date || "",
+    location: row.location || (attractionParts.length > 1 ? attractionParts.shift() : ""),
+    period: row.period || packedTransport.period || "",
+    time: row.time || packedTransport.time || "",
+    activity: row.activity || (attractionParts.length > 1 ? attractionParts.join("｜") : attraction),
+    route: row.route || packedTransport.route || transportDetailRaw,
+    transport: row.transport || row.transport_type || "",
     attraction: row.attraction || "",
     startDate: row.start_date || "",
     endDate: row.end_date || "",
@@ -301,15 +319,25 @@ export async function saveTripToRemote(trip, details) {
   if (deleteError) throw deleteError;
 
   const rows = details
-    .filter((detail) => detail.attraction || detail.transportType || detail.transportDetail || detail.cost)
+    .filter((detail) => detail.activity || detail.location || detail.transport || detail.route || detail.cost)
     .map((detail, index) => ({
       id: detail.id || "detail-" + Date.now() + "-" + index,
       trip_id: trip.id,
-      attraction: detail.attraction,
-      start_date: detail.startDate || null,
-      end_date: detail.endDate || null,
-      transport_type: detail.transportType,
-      transport_detail: detail.transportDetail,
+      // Keep the current Supabase schema compatible while the editor uses the
+      // spreadsheet-shaped fields. The location is kept beside the activity.
+      attraction: detail.location && detail.activity
+        ? detail.location + "｜" + detail.activity
+        : (detail.activity || detail.location || detail.attraction || ""),
+      start_date: detail.date || detail.startDate || null,
+      end_date: detail.date || detail.endDate || null,
+      transport_type: detail.transport || detail.transportType || "",
+      transport_detail: detail.period || detail.time
+        ? JSON.stringify({
+            route: detail.route || detail.transportDetail || "",
+            period: detail.period || "",
+            time: detail.time || ""
+          })
+        : (detail.route || detail.transportDetail || ""),
       cost: Number(detail.cost || 0),
       currency: detail.currency || "JPY",
       sort_order: index
