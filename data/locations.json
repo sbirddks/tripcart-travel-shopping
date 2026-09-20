@@ -1,0 +1,54 @@
+{
+  "locations": [
+    {
+      "id": "chawawa-miyajima",
+      "region": "廣島／宮島",
+      "city": "廣島",
+      "store": "茶和々",
+      "location": "宮島",
+      "mapsUrl": "https://www.google.com/maps/search/?api=1&query=%E8%8C%B6%E5%92%8C%E3%80%80%E5%AE%AE%E5%B3%B6",
+      "lat": 34.2991,
+      "lng": 132.3196
+    },
+    {
+      "id": "fujiiya-miyajima",
+      "region": "廣島／宮島",
+      "city": "廣島",
+      "store": "藤い屋",
+      "location": "宮島",
+      "mapsUrl": "https://www.google.com/maps/search/?api=1&query=%E8%97%A4%E3%81%84%E5%B1%8B%20%E5%AE%AE%E5%B3%B6",
+      "lat": 34.2994,
+      "lng": 132.3191
+    },
+    {
+      "id": "sogo-hiroshima",
+      "region": "廣島",
+      "city": "廣島",
+      "store": "SOGO 廣島店",
+      "location": "SOGO 廣島店",
+      "mapsUrl": "https://www.google.com/maps/search/?api=1&query=SOGO%20%E5%BB%A3%E5%B3%B6%E5%BA%97",
+      "lat": 34.3948,
+      "lng": 132.4595
+    },
+    {
+      "id": "ekie-hiroshima",
+      "region": "廣島",
+      "city": "廣島",
+      "store": "廣島車站 EKIE",
+      "location": "廣島車站 EKIE",
+      "mapsUrl": "https://www.google.com/maps/search/?api=1&query=EKIE%20Hiroshima",
+      "lat": 34.3977,
+      "lng": 132.4759
+    },
+    {
+      "id": "okayama-station",
+      "region": "岡山",
+      "city": "岡山",
+      "store": "岡山車站",
+      "location": "岡山車站",
+      "mapsUrl": "https://www.google.com/maps/search/?api=1&query=%E5%B2%A1%E5%B1%B1%E8%BB%8A%E7%AB%99",
+      "lat": 34.6663,
+      "lng": 133.918
+    }
+  ]
+}

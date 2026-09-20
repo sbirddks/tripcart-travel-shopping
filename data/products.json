@@ -1,0 +1,82 @@
+{
+  "products": [
+    {
+      "id": "hiroshima-matcha",
+      "locationId": "chawawa-miyajima",
+      "trip": "廣島 3 天 2 夜",
+      "nameJa": "茶和々抹茶",
+      "nameZh": "茶和々抹茶",
+      "description": "宮島伴手禮，適合做成抹茶飲或甜點。",
+      "qty": 2,
+      "unitPrice": 1200,
+      "currency": "JPY",
+      "image": "assets/images/chawawa-miyajima.jpg",
+      "status": "pending"
+    },
+    {
+      "id": "hiroshima-fujiiya",
+      "locationId": "fujiiya-miyajima",
+      "trip": "廣島 3 天 2 夜",
+      "nameJa": "藤い屋 輕雪花",
+      "nameZh": "藤い屋輕雪花",
+      "description": "原清單中的宮島甜點示例，保留日文店名。",
+      "qty": 1,
+      "unitPrice": 800,
+      "currency": "JPY",
+      "image": "assets/images/fujiiya-miyajima.jpeg",
+      "status": "pending"
+    },
+    {
+      "id": "hiroshima-butter",
+      "locationId": "sogo-hiroshima",
+      "trip": "廣島 3 天 2 夜",
+      "nameJa": "PRESS BUTTER SAND",
+      "nameZh": "焦糖奶油夾心餅乾",
+      "description": "SOGO 廣島店可購買，適合列為已購買回顧。",
+      "qty": 2,
+      "unitPrice": 1600,
+      "currency": "JPY",
+      "image": "assets/images/press-butter-sand.jpeg",
+      "status": "done"
+    },
+    {
+      "id": "hiroshima-hattendo",
+      "locationId": "ekie-hiroshima",
+      "trip": "廣島 3 天 2 夜",
+      "nameJa": "八天堂 くりーむパン",
+      "nameZh": "八天堂奶油麵包",
+      "description": "廣島車站 EKIE 的代表性甜點示例。",
+      "qty": 3,
+      "unitPrice": 350,
+      "currency": "JPY",
+      "image": "assets/images/hattendo.jpeg",
+      "status": "pending"
+    },
+    {
+      "id": "hiroshima-fukujuen",
+      "locationId": "sogo-hiroshima",
+      "trip": "廣島 3 天 2 夜",
+      "nameJa": "福寿園 抹茶粉",
+      "nameZh": "福寿園抹茶粉",
+      "description": "原清單中的茶品示例，可用於測試多筆同地區資料。",
+      "qty": 1,
+      "unitPrice": 980,
+      "currency": "JPY",
+      "image": "assets/images/fukujuen.jpg",
+      "status": "pending"
+    },
+    {
+      "id": "okayama-butter",
+      "locationId": "okayama-station",
+      "trip": "岡山 2 天 1 夜",
+      "nameJa": "PRESS BUTTER SAND 岡山限定",
+      "nameZh": "岡山限定水蜜桃口味",
+      "description": "原清單中的岡山車站限定口味示例。",
+      "qty": 1,
+      "unitPrice": 1700,
+      "currency": "JPY",
+      "image": "assets/images/okayama-butter.jpg",
+      "status": "pending"
+    }
+  ]
+}
