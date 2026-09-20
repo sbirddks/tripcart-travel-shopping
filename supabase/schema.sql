@@ -35,6 +35,113 @@ create table if not exists public.products (
 create index if not exists products_location_id_idx on public.products(location_id);
 create index if not exists products_trip_idx on public.products(trip);
 
+-- Public application profile for each Supabase Auth account.
+-- Passwords and authentication secrets remain in auth.users.
+create table if not exists public.tripcart_users (
+  id uuid primary key references auth.users(id) on delete cascade,
+  email text not null default '',
+  display_name text not null default '',
+  avatar_url text not null default '',
+  last_login_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create or replace function public.set_tripcart_user_updated_at()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists tripcart_users_set_updated_at on public.tripcart_users;
+create trigger tripcart_users_set_updated_at
+before update on public.tripcart_users
+for each row execute function public.set_tripcart_user_updated_at();
+
+-- Keep one profile row in sync with every new Auth account.
+create or replace function public.handle_tripcart_user_created()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  insert into public.tripcart_users (id, email, display_name)
+  values (
+    new.id,
+    coalesce(new.email, ''),
+    coalesce(new.raw_user_meta_data ->> 'display_name', '')
+  )
+  on conflict (id) do update
+    set email = excluded.email;
+  return new;
+end;
+$$;
+
+drop trigger if exists tripcart_user_created on auth.users;
+create trigger tripcart_user_created
+after insert on auth.users
+for each row execute function public.handle_tripcart_user_created();
+
+-- Keep the profile email current if an Auth email changes.
+create or replace function public.handle_tripcart_user_updated()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  update public.tripcart_users
+  set email = coalesce(new.email, ''), updated_at = now()
+  where id = new.id;
+  return new;
+end;
+$$;
+
+drop trigger if exists tripcart_user_updated on auth.users;
+create trigger tripcart_user_updated
+after update of email on auth.users
+for each row execute function public.handle_tripcart_user_updated();
+
+alter table public.tripcart_users enable row level security;
+revoke all on table public.tripcart_users from anon, authenticated;
+grant select, insert, update on table public.tripcart_users to authenticated;
+
+drop policy if exists tripcart_users_select on public.tripcart_users;
+create policy tripcart_users_select
+on public.tripcart_users for select
+to authenticated
+using ((select auth.uid()) = id);
+
+drop policy if exists tripcart_users_insert on public.tripcart_users;
+create policy tripcart_users_insert
+on public.tripcart_users for insert
+to authenticated
+with check ((select auth.uid()) = id);
+
+drop policy if exists tripcart_users_update on public.tripcart_users;
+create policy tripcart_users_update
+on public.tripcart_users for update
+to authenticated
+using ((select auth.uid()) = id)
+with check ((select auth.uid()) = id);
+
+-- Backfill accounts that existed before this table was created.
+insert into public.tripcart_users (id, email, display_name, created_at)
+select
+  id,
+  coalesce(email, ''),
+  coalesce(raw_user_meta_data ->> 'display_name', ''),
+  created_at
+from auth.users
+on conflict (id) do nothing;
+
 create or replace function public.set_tripcart_updated_at()
 returns trigger
 language plpgsql

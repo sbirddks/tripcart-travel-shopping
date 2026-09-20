@@ -7,7 +7,8 @@ const state = {
   editingLocationId: "",
   imageData: "",
   imageFile: null,
-  session: null
+  session: null,
+  profile: null
 };
 const cloudinary = { config: {} };
 const remote = { config: {}, client: null, channel: null };
@@ -57,16 +58,46 @@ function authenticated() {
   return Boolean(state.session);
 }
 
+async function syncTripcartUser(session = state.session, touchLogin = false) {
+  if (!remoteReady() || !session?.user) {
+    state.profile = null;
+    return;
+  }
+  const user = session.user;
+  const payload = {
+    id: user.id,
+    email: user.email || "",
+    display_name: state.profile?.display_name || user.user_metadata?.display_name || ""
+  };
+  if (touchLogin) payload.last_login_at = new Date().toISOString();
+  const { data, error } = await remote.client
+    .from("tripcart_users")
+    .upsert(payload, { onConflict: "id" })
+    .select()
+    .single();
+  if (error) {
+    console.warn("TripCart user profile sync failed", error);
+    return;
+  }
+  state.profile = data;
+  updateAuthUI();
+}
+
 async function initAuth() {
   if (!remoteReady()) return;
   const { data, error } = await remote.client.auth.getSession();
   if (error) throw error;
   state.session = data.session;
-  remote.client.auth.onAuthStateChange((_event, session) => {
+  if (state.session) await syncTripcartUser(state.session);
+  remote.client.auth.onAuthStateChange((event, session) => {
     state.session = session;
+    state.profile = session ? state.profile : null;
     updateAuthUI();
     if (session && !state.editingId) refreshRemoteProducts();
     render();
+    if (session) {
+      window.setTimeout(() => syncTripcartUser(session, event === "SIGNED_IN"), 0);
+    }
   });
 }
 
@@ -81,7 +112,7 @@ function updateAuthUI() {
   }
   button.style.display = "inline-block";
   if (authenticated()) {
-    status.textContent = "已登入：" + (state.session.user.email || "旅伴");
+    status.textContent = "已登入：" + (state.profile?.display_name || state.session.user.email || "旅伴");
     button.textContent = "登出";
   } else {
     status.textContent = "訪客模式 · 登入後可編輯";
@@ -102,9 +133,14 @@ async function handleAuth(action) {
   if (!remoteReady()) return;
   const email = $("authEmail").value.trim();
   const password = $("authPassword").value;
+  const displayName = $("authDisplayName").value.trim();
   try {
     const result = action === "signup"
-      ? await remote.client.auth.signUp({ email, password })
+      ? await remote.client.auth.signUp({
+          email,
+          password,
+          options: { data: { display_name: displayName } }
+        })
       : await remote.client.auth.signInWithPassword({ email, password });
     if (result.error) throw result.error;
     closeAuthModal();
