@@ -1,6 +1,6 @@
 {
-  "enabled": false,
-  "cloudName": "YOUR_CLOUD_NAME",
-  "uploadPreset": "YOUR_UNSIGNED_UPLOAD_PRESET",
+  "enabled": true,
+  "cloudName": "lwq0ys1w",
+  "uploadPreset": "tripcart_products",
   "folder": "tripcart/products"
 }
