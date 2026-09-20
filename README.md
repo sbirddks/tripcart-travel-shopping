@@ -6,9 +6,20 @@
 
 - `data/products.json`：商品名稱、描述、數量、單價、圖片、購買狀態與對應地點 ID。
 - `data/locations.json`：地區／城市、店名、地址與 Google Maps 連結、定位座標。
+- `data/cloudinary.json`：Cloudinary 圖片上傳設定（只放 cloud name 與 unsigned upload preset，不放 API secret）。
 - `assets/images/`：商品圖片素材。
 
 頁面會先讀取上述 JSON，再將商品與地點資料合併顯示；使用者在頁面新增或編輯的資料會暫存在瀏覽器的 localStorage，保留本機操作結果。
+
+## Cloudinary 圖片上傳
+
+1. 在 Cloudinary Console 建立一個 unsigned upload preset，建議限制圖片格式、檔案大小與上傳資料夾。
+2. 將 `data/cloudinary.json` 的 `enabled` 改成 `true`，並填入 Cloudinary 的 `cloudName` 與 `uploadPreset`。
+3. 在新增／編輯商品時選取圖片；儲存前頁面會先上傳圖片到 Cloudinary，再將回傳的 `secure_url` 寫入商品資料。
+
+Cloudinary 的 cloud name 與 unsigned preset 會出現在前端，因此不要把 API secret 放進這個網站。若需要更嚴格的權限控管，應改用後端產生 signed upload。
+
+目前原有示例圖片仍保留在 `assets/images/` 作為未設定 Cloudinary 時的初始資料；完成 Cloudinary 設定後，可逐筆編輯商品重新上傳，確認網址切換完成再移除本機圖片。
 
 ## 本機預覽
 
