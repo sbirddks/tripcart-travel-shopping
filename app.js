@@ -714,7 +714,7 @@ $("authButton").addEventListener("click", async () => {
 $("closeAuthModal").addEventListener("click", closeAuthModal);
 $("authForm").addEventListener("submit", (event) => {
   event.preventDefault();
-  handleAuth(event.submitter?.dataset.action || "signin");
+  handleAuth(event.submitter?.dataset.authAction || "signin");
 });
 $("closeDrawer").addEventListener("click", closeDrawer);
 $("cancelDrawer").addEventListener("click", closeDrawer);
