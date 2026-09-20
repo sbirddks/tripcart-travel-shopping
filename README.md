@@ -53,3 +53,15 @@ Cloudinary 的 cloud name 與 unsigned preset 會出現在前端，因此不要�
 因為瀏覽器安全限制，外部 JSON 不能以 `file://` 直接讀取。請在專案資料夾啟動任一個本機 HTTP 伺服器，再開啟 `index.html`。例如使用 VS Code Live Server，或使用其他可提供靜態檔案的 localhost 工具。
 
 定位提醒在瀏覽器允許位置權限，並以 localhost 或 HTTPS 開啟時可完整運作。
+
+## 建置與 VS Code 除錯
+
+專案使用 `esbuild` 打包與壓縮 JavaScript／CSS，並使用 `http-server` 提供本地靜態伺服器：
+
+- `npm install`：安裝依賴套件。
+- `npm run dev`：在 `http://localhost:4173` 啟動原始碼開發頁面。
+- `npm run check`：檢查 JavaScript 語法。
+- `npm run build`：產生壓縮後的 `dist/` 發布檔案與 source map。
+- `npm run preview`：在 `http://localhost:4174` 預覽 `dist/` 發布版本。
+
+VS Code 可直接從「執行與偵錯」選擇 `TripCart: Chrome local debug`，啟動本地伺服器並以 Chrome 除錯；若要確認壓縮後版本，選擇 `TripCart: Chrome preview dist`。對應設定位於 `.vscode/tasks.json` 與 `.vscode/launch.json`。

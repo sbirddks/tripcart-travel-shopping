@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "TripCart: Chrome local debug",
+      "type": "pwa-chrome",
+      "request": "launch",
+      "url": "http://localhost:4173/?remote=1",
+      "webRoot": "${workspaceFolder}",
+      "preLaunchTask": "TripCart: local dev server",
+      "sourceMaps": true
+    },
+    {
+      "name": "TripCart: Chrome preview dist",
+      "type": "pwa-chrome",
+      "request": "launch",
+      "url": "http://localhost:4174/?remote=1",
+      "webRoot": "${workspaceFolder}/dist",
+      "preLaunchTask": "TripCart: preview release",
+      "sourceMaps": true
+    }
+  ]
+}
