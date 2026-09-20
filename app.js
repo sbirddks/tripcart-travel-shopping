@@ -139,23 +139,22 @@ async function handleAuth(action) {
       ? await remote.client.auth.signUp({
           email,
           password,
-          options: {
-            data: { display_name: displayName },
-            emailRedirectTo: window.location.origin + window.location.pathname
-          }
+          options: { data: { display_name: displayName } }
         })
       : await remote.client.auth.signInWithPassword({ email, password });
     if (result.error) throw result.error;
     closeAuthModal();
-    if (action === "signup" && !result.data.session) {
-      showToast("註冊成功，請到信箱完成 Email 驗證，再回來登入。", "good");
+    if (action === "signup" && result.data.session) {
+      showToast("註冊成功，已直接登入 TripCart。", "good");
+    } else if (action === "signup") {
+      showToast("帳號已建立，請重新登入。", "good");
     } else {
       showToast("登入成功，已啟用共享編輯。", "good");
     }
   } catch (error) {
     const code = error?.code || error?.name;
     const message = code === "email_not_confirmed"
-      ? "這個帳號尚未完成 Email 驗證，請先點擊信箱中的確認連結。"
+      ? "專案目前仍要求 Email 驗證，請在 Supabase Auth 關閉 Confirm email 後再試。"
       : code === "invalid_credentials"
         ? "登入資訊不正確。第一次使用請按「註冊」；若剛註冊，請先完成 Email 驗證。"
         : code === "signup_disabled"
