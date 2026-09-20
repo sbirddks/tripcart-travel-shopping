@@ -1,58 +1,292 @@
 <!doctype html>
 <html lang="zh-Hant">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="TripCart 旅遊購物清單網頁原型">
-  <title>TripCart 旅遊購物清單</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%2319324d'/%3E%3Ccircle cx='32' cy='32' r='20' fill='%237fd3b4'/%3E%3Cpath d='M22 25h20M32 25v18M25 43h14' stroke='%2319324d' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
-  <style>
-    :root{--ink:#172236;--muted:#64748b;--line:#dce4ed;--panel:#fff;--navy:#19324d;--blue:#2f6fed;--gold:#d88b18;--gold-bg:#fff5df;--green:#1f8a70;--green-bg:#e7f5ef;--red:#c94c4c;--shadow:0 20px 50px rgba(25,50,77,.10)}
-    *{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#edf3f8 0%,#f8fafc 52%,#eef3f8 100%);color:var(--ink);font-family:Inter,"Noto Sans TC","Microsoft JhengHei",Arial,sans-serif}button,input,select,textarea{font:inherit}button{cursor:pointer}[hidden]{display:none!important}
-    .app{max-width:1380px;margin:26px auto;padding:0 20px}.topbar{display:flex;align-items:center;justify-content:space-between;background:var(--navy);color:#fff;border-radius:18px 18px 0 0;padding:22px 28px;box-shadow:var(--shadow)}.brand{display:flex;align-items:center;gap:12px}.logo{width:36px;height:36px;border-radius:12px;background:#7fd3b4;color:var(--navy);display:grid;place-items:center;font-weight:900;font-size:17px}.brand h1{font-size:21px;line-height:1;margin:0}.brand small{display:block;font-size:11px;color:#bcd1ef;margin-top:7px;letter-spacing:.02em}.top-actions{display:flex;align-items:center;gap:18px}.trip-badge{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:800}.trip-dot{width:9px;height:9px;border-radius:50%;background:#7fd3b4;box-shadow:0 0 0 5px rgba(127,211,180,.16)}.auth-area{display:flex;align-items:center;gap:10px}.auth-status{font-size:11px;color:#dbe8f8;max-width:210px;text-align:right}.auth-button{height:34px;padding:0 12px;font-size:11px;background:#fff;border:1px solid #fff;border-radius:9px;color:var(--navy)}
-    .main{background:rgba(255,255,255,.88);border:1px solid var(--line);border-top:0;border-radius:0 0 18px 18px;box-shadow:var(--shadow);overflow:hidden}.toolbar{display:flex;align-items:end;gap:12px;padding:22px 26px 18px;border-bottom:1px solid var(--line);background:#fbfcfe}.control{min-width:200px}.control label{display:block;font-size:11px;font-weight:800;color:var(--muted);margin:0 0 7px}.control select,.search{height:42px;width:100%;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);padding:0 12px;outline:0}.search-wrap{flex:1;min-width:200px}.outline,.primary{height:42px;border-radius:10px;padding:0 15px;font-weight:900;font-size:12px}.outline{border:1px solid #b9c8d8;background:#fff;color:var(--navy)}.primary{border:1px solid var(--blue);background:var(--blue);color:#fff}.workspace{display:grid;grid-template-columns:minmax(0,1fr) 285px;gap:22px;padding:23px 26px 29px}.section-head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-bottom:17px}.section-head h2{margin:0;font-size:20px}.section-head p{margin:6px 0 0;color:var(--muted);font-size:11px}.summary{display:flex;align-items:baseline;gap:8px;font-size:11px;color:var(--muted)}.summary strong{font-size:18px;color:var(--ink);margin-right:8px}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.card{border:1px solid var(--line);border-radius:14px;background:#fff;overflow:hidden;box-shadow:0 8px 22px rgba(25,50,77,.05)}.thumb{height:150px;background:#eef3f7}.thumb img{width:100%;height:100%;display:block;object-fit:cover}.card-body{padding:14px 15px 15px}.card-title{display:flex;align-items:start;justify-content:space-between;gap:8px}.card h3{font-size:15px;line-height:1.35;margin:0}.status{font-size:10px;font-weight:900;border-radius:999px;padding:4px 8px;white-space:nowrap}.pending{color:var(--gold);background:var(--gold-bg)}.done{color:var(--green);background:var(--green-bg)}.meta{font-size:11px;color:var(--muted);margin:6px 0 10px;min-height:16px}.desc{font-size:11px;color:#536176;line-height:1.55;min-height:34px;margin:0 0 10px}.money-row{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11px;padding-top:10px;border-top:1px solid #edf1f5}.money-row b{font-size:14px}.card-actions{display:flex;gap:11px;margin-top:12px;font-size:11px;font-weight:900}.link{color:var(--blue);text-decoration:none;border:0;background:none;padding:0;font-weight:900}.link:hover{text-decoration:underline}.danger{color:var(--red);background:none;border:0;padding:0;font-weight:900}.empty{grid-column:1/-1;padding:44px 20px;text-align:center;border:1px dashed #bcc9d8;border-radius:14px;color:var(--muted)}
-    .side{display:flex;flex-direction:column;gap:15px}.side-card{border:1px solid var(--line);border-radius:14px;background:#fbfcfe;padding:17px}.side-card h3{font-size:14px;margin:0}.side-card p{font-size:11px;line-height:1.6;color:var(--muted);margin:7px 0 15px}.switch-row{display:flex;justify-content:space-between;align-items:center;gap:12px}.switch{position:relative;width:44px;height:24px}.switch input{opacity:0;width:0;height:0}.slider{position:absolute;inset:0;border-radius:20px;background:#c8d2df;transition:.2s}.slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:.2s}.switch input:checked + .slider{background:var(--blue)}.switch input:checked + .slider:before{transform:translateX(20px)}.setting-label{font-size:12px;font-weight:800}.radius{display:flex;align-items:center;gap:9px;margin-top:15px}.radius label{font-size:11px;font-weight:800;color:var(--muted)}.radius select{height:34px;border:1px solid var(--line);border-radius:8px;padding:0 8px;background:#fff;color:var(--ink)}.permission{font-size:11px;line-height:1.55;padding:10px 11px;border-radius:9px;background:#eef4ff;color:#3c5d9c;margin-top:14px}.permission.warn{background:#fff5df;color:#8b6416}.demo{width:100%;height:36px;margin-top:13px}.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stat{background:#fff;border:1px solid var(--line);border-radius:11px;padding:12px}.stat small{display:block;font-size:10px;color:var(--muted);margin-bottom:5px}.stat strong{font-size:17px}.note{font-size:11px;color:var(--muted);line-height:1.6;margin:0}
-    .trip-page{padding:23px 26px 29px}.trip-page-head{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:18px}.trip-page-head h2{margin:0;font-size:20px}.trip-page-head p{margin:6px 0 0;color:var(--muted);font-size:11px}.trip-layout{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px}.trip-list-panel,.trip-editor{border:1px solid var(--line);border-radius:14px;background:#fbfcfe;padding:16px}.trip-list-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}.trip-list-head h3{font-size:14px;margin:0}.trip-list{display:flex;flex-direction:column;gap:9px}.trip-list-item{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:11px;background:#fff;padding:12px}.trip-list-item.active{border-color:#8cb1f3;box-shadow:0 0 0 2px #e8efff}.trip-list-item strong{display:block;font-size:12px}.trip-list-item small{display:block;color:var(--muted);font-size:10px;line-height:1.45;margin-top:4px}.trip-list-item .link{font-size:11px;flex:none}.trip-editor-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.trip-editor-head h3{margin:0;font-size:15px}.trip-editor-note{font-size:11px;color:var(--muted);margin:0 0 14px}.form{overflow:auto}.form-grid,.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.field{margin-bottom:14px}.field.full{grid-column:1/-1}.field label{display:flex;justify-content:space-between;gap:6px;font-size:11px;font-weight:900;color:#3d4b60;margin:0 0 6px}.required{color:var(--blue);font-weight:700;font-size:10px}.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);padding:10px 11px;outline:0;font-size:12px}.field textarea{min-height:78px;resize:vertical;line-height:1.55}.calc{background:#f4f7fa;border-radius:9px;padding:10px 11px;font-size:12px;font-weight:900;color:var(--ink)}.trip-details-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:20px 0 10px;padding-top:16px;border-top:1px solid var(--line)}.trip-details-head h4{font-size:13px;margin:0}.trip-details-head button{height:32px;padding:0 10px;font-size:11px}.trip-detail-row{border:1px solid var(--line);border-radius:12px;background:#fff;padding:13px;margin-bottom:11px}.detail-row-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.detail-row-head strong{font-size:11px}.detail-row-head .danger{font-size:11px}.trip-form-actions{display:flex;justify-content:flex-end;gap:10px;padding-top:6px}.trip-form-actions button{min-width:120px}
-    .toast{position:fixed;right:25px;bottom:25px;z-index:20;max-width:360px;background:var(--navy);color:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 16px 40px rgba(25,50,77,.24);font-size:12px;line-height:1.55;display:none}.toast.show{display:block;animation:slide .22s ease}.toast.good{border-left:4px solid #7fd3b4}.toast.warn{border-left:4px solid #f4bd55}@keyframes slide{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
-    .overlay{display:none;position:fixed;inset:0;background:rgba(19,32,51,.36);z-index:10}.overlay.show{display:block}.drawer{position:fixed;z-index:11;right:0;top:0;bottom:0;width:min(470px,100vw);background:#fff;box-shadow:-20px 0 45px rgba(25,50,77,.18);transform:translateX(100%);transition:transform .25s ease;display:flex;flex-direction:column}.drawer.show{transform:translateX(0)}.drawer-head{display:flex;align-items:start;justify-content:space-between;padding:22px 23px 15px;border-bottom:1px solid var(--line)}.drawer-head h2{font-size:18px;margin:0}.drawer-head p{font-size:11px;color:var(--muted);margin:5px 0 0}.close{width:32px;height:32px;border:1px solid var(--line);background:#fff;border-radius:8px;color:var(--muted);font-size:18px;line-height:1}.drawer .form{padding:19px 23px;flex:1}.image-preview{height:82px;border:1px dashed #b8c7d8;border-radius:9px;background:#f8fafc;display:flex;align-items:center;justify-content:center;overflow:hidden;color:var(--muted);font-size:11px}.image-preview img{height:100%;width:100%;object-fit:cover}.drawer-foot{border-top:1px solid var(--line);padding:15px 23px;display:flex;gap:10px}.drawer-foot button{flex:1}.delete-item{color:var(--red);border:0;background:#fff;font-weight:800}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-    .auth-modal{position:fixed;z-index:13;left:50%;top:50%;width:min(390px,calc(100vw - 32px));transform:translate(-50%,-46%);background:#fff;border-radius:16px;box-shadow:0 24px 70px rgba(25,50,77,.24);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease}.auth-modal.show{opacity:1;pointer-events:auto;transform:translate(-50%,-50%)}.auth-head{display:flex;align-items:start;justify-content:space-between;padding:20px 22px 14px;border-bottom:1px solid var(--line)}.auth-head h2{font-size:18px;margin:0}.auth-head p{font-size:11px;color:var(--muted);margin:6px 0 0}.auth-form{padding:19px 22px 22px}.auth-form label{display:block;font-size:11px;font-weight:900;color:#3d4b60;margin:0 0 6px}.auth-form input{width:100%;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);padding:10px 11px;outline:0;font-size:12px;margin-bottom:13px}.auth-actions{display:flex;gap:10px}.auth-actions button{flex:1}.auth-note{font-size:11px;line-height:1.5;color:var(--muted);margin:12px 0 0}.auth-modal .close{flex:none}
-    @media(max-width:1050px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.workspace{grid-template-columns:minmax(0,1fr) 280px}.toolbar{flex-wrap:wrap}.search-wrap{min-width:220px}.trip-layout{grid-template-columns:250px minmax(0,1fr)}}
-    @media(max-width:780px){.app{margin:0;padding:0}.topbar{border-radius:0;padding:18px}.main{border-radius:0;border-left:0;border-right:0}.toolbar{padding:16px;align-items:stretch}.control,.search-wrap{min-width:0;flex:1 1 45%}.primary{flex:1}.workspace,.trip-layout{display:block;padding:18px 16px 25px}.side{margin-top:20px}.grid{grid-template-columns:1fr 1fr;gap:11px}.thumb{height:125px}.card-body{padding:11px}.card h3{font-size:13px}.desc{font-size:10px;min-height:46px}.money-row{display:block;line-height:1.8}.card-actions{gap:7px;font-size:10px}.trip-page{padding:18px 16px 25px}.trip-list-panel{margin-bottom:18px}.form-grid,.detail-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.trip-page-head{align-items:start;flex-direction:column}.trip-form-actions{justify-content:stretch}.trip-form-actions button{flex:1}.top-actions{gap:10px}.trip-badge{display:none}.auth-status{max-width:130px}}
-    @media(max-width:480px){.brand h1{font-size:18px}.grid{grid-template-columns:1fr}.control{flex-basis:100%}.search-wrap{flex-basis:100%}.toolbar .outline#resetFilters{display:none}.toolbar .outline#tripManager{display:block}}
-  </style>
-</head>
-<body>
-  <div class="app">
-    <header class="topbar">
-      <div class="brand"><div class="logo">T</div><div><h1>旅途購物清單</h1><small>TripCart · 旅行中的購買計畫</small></div></div>
-      <div class="top-actions"><div class="trip-badge"><span class="trip-dot"></span><span id="topTrip">全部旅程</span></div><div class="auth-area"><span class="auth-status" id="authStatus">本地資料模式</span><button class="auth-button" id="authButton" type="button">登入／註冊</button></div></div>
-    </header>
-    <main class="main">
-      <section id="productsPage">
-        <section class="toolbar" aria-label="清單篩選與操作">
-          <div class="control"><label for="tripFilter">旅程</label><select id="tripFilter"></select></div>
-          <div class="control"><label for="regionFilter">地區／城市</label><select id="regionFilter"></select></div>
-          <div class="search-wrap"><label class="sr-only" for="search">搜尋商品</label><input class="search" id="search" placeholder="搜尋商品或購買地點"></div>
-          <button class="outline" id="resetFilters" type="button">清除篩選</button><button class="outline" id="tripManager" type="button">旅程管理</button><button class="primary" id="addItem" type="button">＋ 新增商品</button>
-        </section>
-        <section class="workspace">
-          <div class="catalog"><div class="section-head"><div><h2>購買清單</h2><p id="resultText">讀取商品資料中…</p></div><div class="summary"><span>待購買</span><strong id="pendingCount">0</strong><span>總額</span><strong id="totalAmount">¥0</strong></div></div><div class="grid" id="cards"><div class="empty">讀取商品資料中…</div></div></div>
-          <aside class="side"><div class="side-card"><h3>位置接近提醒</h3><p>當使用者位置接近待購買店家時，顯示頁內提示；若瀏覽器允許，也會發送系統通知。</p><div class="switch-row"><span class="setting-label">開啟提醒</span><label class="switch"><input type="checkbox" id="reminderToggle"><span class="slider"></span></label></div><div class="radius"><label for="radius">提醒半徑</label><select id="radius"><option value="300">300 m</option><option value="500" selected>500 m</option><option value="1000">1 km</option></select></div><div class="permission" id="permissionText">尚未開啟定位與通知權限。開啟後才會啟動距離判斷。</div><button class="outline demo" id="demoNear" type="button">模擬接近店家</button></div><div class="side-card"><h3>旅程摘要</h3><div class="stats"><div class="stat"><small>清單項目</small><strong id="itemCount">0</strong></div><div class="stat"><small>已購買</small><strong id="doneCount">0</strong></div></div></div><div class="side-card"><h3>使用說明</h3><p class="note">地點連結會開啟 Google Maps。商品圖片選檔後會上傳 Cloudinary；旅程與商品資料在登入後同步到 Supabase。</p></div></aside>
-        </section>
-      </section>
-      <section class="trip-page" id="tripPage" hidden>
-        <div class="trip-page-head"><div><h2>旅程編輯</h2><p>先建立旅程主資料，再在下方加入主要景點、日期、交通方式與費用明細。</p></div><button class="outline" id="backToProducts" type="button">返回購買清單</button></div>
-        <div class="trip-layout">
-          <aside class="trip-list-panel"><div class="trip-list-head"><h3>旅程列表</h3><button class="primary" id="newTrip" type="button">＋ 新增旅程</button></div><div class="trip-list" id="tripList"><div class="empty">讀取旅程資料中…</div></div></aside>
-          <section class="trip-editor"><div class="trip-editor-head"><h3 id="tripFormTitle">新增旅程</h3></div><p class="trip-editor-note">旅程名稱、日期與主要地點屬於 header；景點與交通安排屬於 detail。</p><form id="tripForm"><input type="hidden" id="tripId"><div class="form-grid"><div class="field full"><label for="tripName">旅程名稱 <span class="required">必填</span></label><input id="tripName" required placeholder="例如：廣島 3 天 2 夜"></div><div class="field"><label for="tripStartDate">日期・起日</label><input id="tripStartDate" type="date"></div><div class="field"><label for="tripEndDate">日期・迄日</label><input id="tripEndDate" type="date"></div><div class="field full"><label for="tripPrimaryLocation">主要地點（廣域）</label><input id="tripPrimaryLocation" placeholder="例如：廣島、岡山"></div></div><div class="trip-details-head"><h4>關聯 detail・行程明細</h4><button class="outline" id="addTripDetail" type="button">＋ 新增明細</button></div><div id="tripDetailsRows"></div><div class="trip-form-actions"><button class="primary" type="submit">儲存旅程</button></div></form></section>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="TripCart 旅遊購物清單網頁原型">
+    <title>TripCart 旅遊購物清單</title>
+    <link rel="stylesheet" href="styles.css">
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%2319324d'/%3E%3Ccircle cx='32' cy='32' r='20' fill='%237fd3b4'/%3E%3Cpath d='M22 25h20M32 25v18M25 43h14' stroke='%2319324d' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E"
+    >
+  </head>
+
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="logo">T</div>
+          <div>
+            <h1>旅途購物清單</h1>
+            <small>TripCart · 旅行中的購買計畫</small>
+          </div>
         </div>
-      </section>
-    </main>
-  </div>
-  <div class="toast" id="toast" role="status" aria-live="polite"></div><div class="overlay" id="overlay"></div>
-  <aside class="drawer" id="drawer" aria-labelledby="drawerTitle"><div class="drawer-head"><div><h2 id="drawerTitle">新增商品</h2><p>填寫商品與購買地點資訊，儲存後立即更新清單。</p></div><button class="close" id="closeDrawer" type="button" aria-label="關閉">×</button></div><form class="form" id="itemForm"><input type="hidden" id="itemId"><div class="form-grid"><div class="field full"><label for="nameJa">商品名稱（日文） <span class="required">必填</span></label><input id="nameJa" required></div><div class="field full"><label for="description">商品資訊／描述 <span>選填</span></label><textarea id="description" placeholder="口味、容量、保存方式或備註"></textarea></div><div class="field"><label for="qty">數量 <span>選填</span></label><input id="qty" type="number" min="1" step="1" placeholder="選填"></div><div class="field"><label for="unitPrice">單價 <span>選填</span></label><input id="unitPrice" type="number" min="0" step="1" placeholder="選填"></div><div class="field"><label>總價 <span>唯讀</span></label><div class="calc" id="totalPreview">¥0</div></div><div class="field"><label for="currency">貨幣 <span class="required">必填</span></label><select id="currency"><option>JPY</option><option>TWD</option><option>USD</option></select></div><div class="field full"><label for="trip">旅程 <span class="required">必填</span></label><select id="trip" required></select></div><div class="field"><label for="region">地區／城市 <span class="required">必填</span></label><input id="region" required></div><div class="field"><label for="location">購買地點 <span class="required">必填</span></label><input id="location" required placeholder="例如：宮島表參道"></div><div class="field full"><label for="mapsUrl">Google Maps 連結 <span class="required">必填</span></label><input id="mapsUrl" type="url" placeholder="https://www.google.com/maps/..." required></div><div class="field"><label for="imageFile">商品圖片 <span>選填</span></label><input id="imageFile" type="file" accept="image/*"></div><div class="field full"><div class="image-preview" id="imagePreview">尚未選擇圖片</div></div></div></form><div class="drawer-foot"><button class="delete-item" id="deleteFromDrawer" type="button">刪除</button><button class="outline" id="cancelDrawer" type="button">取消</button><button class="primary" form="itemForm" type="submit">儲存商品</button></div></aside>
-  <aside class="auth-modal" id="authModal" aria-labelledby="authTitle"><div class="auth-head"><div><h2 id="authTitle">登入／註冊 TripCart</h2><p>與旅伴共享購物清單與編輯權限。</p></div><button class="close" id="closeAuthModal" type="button" aria-label="關閉">×</button></div><form class="auth-form" id="authForm"><label for="authEmail">Email／登入帳號</label><input id="authEmail" type="email" autocomplete="email" required placeholder="name@example.com"><label for="authDisplayName">使用者名稱 <span>註冊時選填</span></label><input id="authDisplayName" type="text" autocomplete="name" maxlength="80" placeholder="例如：小明"><label for="authPassword">密碼</label><input id="authPassword" type="password" autocomplete="current-password" minlength="6" required placeholder="至少 6 個字元"><div class="auth-actions"><button class="outline" type="submit" data-auth-action="signup">註冊</button><button class="primary" type="submit" data-auth-action="signin">登入</button></div><p class="auth-note">Email 僅用於登入，不寄送通知信；註冊後即可直接登入，不需要 Email 驗證。</p></form></aside>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js"></script>
-</body>
+
+        <div class="top-actions">
+          <div class="trip-badge">
+            <span class="trip-dot"></span>
+            <span id="topTrip">全部旅程</span>
+          </div>
+          <div class="auth-area">
+            <span class="auth-status" id="authStatus">本地資料模式</span>
+            <button class="auth-button" id="authButton" type="button">登入／註冊</button>
+          </div>
+        </div>
+      </header>
+
+      <main class="main">
+        <section id="productsPage">
+          <section class="toolbar" aria-label="清單篩選與操作">
+            <div class="control">
+              <label for="tripFilter">旅程</label>
+              <select id="tripFilter"></select>
+            </div>
+            <div class="control">
+              <label for="regionFilter">地區／城市</label>
+              <select id="regionFilter"></select>
+            </div>
+            <div class="search-wrap">
+              <label class="sr-only" for="search">搜尋商品</label>
+              <input class="search" id="search" placeholder="搜尋商品或購買地點">
+            </div>
+            <button class="outline" id="resetFilters" type="button">清除篩選</button>
+            <button class="outline" id="tripManager" type="button">旅程管理</button>
+            <button class="primary" id="addItem" type="button">＋ 新增商品</button>
+          </section>
+
+          <section class="workspace">
+            <div class="catalog">
+              <div class="section-head">
+                <div>
+                  <h2>購買清單</h2>
+                  <p id="resultText">讀取商品資料中…</p>
+                </div>
+                <div class="summary">
+                  <span>待購買</span>
+                  <strong id="pendingCount">0</strong>
+                  <span>總額</span>
+                  <strong id="totalAmount">¥0</strong>
+                </div>
+              </div>
+              <div class="grid" id="cards">
+                <div class="empty">讀取商品資料中…</div>
+              </div>
+            </div>
+
+            <aside class="side">
+              <div class="side-card">
+                <h3>位置接近提醒</h3>
+                <p>當使用者位置接近待購買店家時，顯示頁內提示；若瀏覽器允許，也會發送系統通知。</p>
+                <div class="switch-row">
+                  <span class="setting-label">開啟提醒</span>
+                  <label class="switch">
+                    <input type="checkbox" id="reminderToggle">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                <div class="radius">
+                  <label for="radius">提醒半徑</label>
+                  <select id="radius">
+                    <option value="300">300 m</option>
+                    <option value="500" selected>500 m</option>
+                    <option value="1000">1 km</option>
+                  </select>
+                </div>
+                <div class="permission" id="permissionText">
+                  尚未開啟定位與通知權限。開啟後才會啟動距離判斷。
+                </div>
+                <button class="outline demo" id="demoNear" type="button">模擬接近店家</button>
+              </div>
+
+              <div class="side-card">
+                <h3>旅程摘要</h3>
+                <div class="stats">
+                  <div class="stat">
+                    <small>清單項目</small>
+                    <strong id="itemCount">0</strong>
+                  </div>
+                  <div class="stat">
+                    <small>已購買</small>
+                    <strong id="doneCount">0</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div class="side-card">
+                <h3>使用說明</h3>
+                <p class="note">地點連結會開啟 Google Maps。商品圖片選檔後會上傳 Cloudinary；旅程與商品資料在登入後同步到 Supabase。</p>
+              </div>
+            </aside>
+          </section>
+        </section>
+
+        <section class="trip-page" id="tripPage" hidden>
+          <div class="trip-page-head">
+            <div>
+              <h2>旅程編輯</h2>
+              <p>先建立旅程主資料，再在下方加入主要景點、日期、交通方式與費用明細。</p>
+            </div>
+            <button class="outline" id="backToProducts" type="button">返回購買清單</button>
+          </div>
+
+          <div class="trip-layout">
+            <aside class="trip-list-panel">
+              <div class="trip-list-head">
+                <h3>旅程列表</h3>
+                <button class="primary" id="newTrip" type="button">＋ 新增旅程</button>
+              </div>
+              <div class="trip-list" id="tripList">
+                <div class="empty">讀取旅程資料中…</div>
+              </div>
+            </aside>
+
+            <section class="trip-editor">
+              <div class="trip-editor-head">
+                <h3 id="tripFormTitle">新增旅程</h3>
+              </div>
+              <p class="trip-editor-note">旅程名稱、日期與主要地點屬於 header；景點與交通安排屬於 detail。</p>
+
+              <form id="tripForm">
+                <input type="hidden" id="tripId">
+
+                <div class="form-grid">
+                  <div class="field full">
+                    <label for="tripName">旅程名稱 <span class="required">必填</span></label>
+                    <input id="tripName" required placeholder="例如：廣島 3 天 2 夜">
+                  </div>
+                  <div class="field">
+                    <label for="tripStartDate">日期・起日</label>
+                    <input id="tripStartDate" type="date">
+                  </div>
+                  <div class="field">
+                    <label for="tripEndDate">日期・迄日</label>
+                    <input id="tripEndDate" type="date">
+                  </div>
+                  <div class="field full">
+                    <label for="tripPrimaryLocation">主要地點（廣域）</label>
+                    <input id="tripPrimaryLocation" placeholder="例如：廣島、岡山">
+                  </div>
+                </div>
+
+                <div class="trip-details-head">
+                  <h4>關聯 detail・行程明細</h4>
+                  <button class="outline" id="addTripDetail" type="button">＋ 新增明細</button>
+                </div>
+                <div id="tripDetailsRows"></div>
+
+                <div class="trip-form-actions">
+                  <button class="primary" type="submit">儲存旅程</button>
+                </div>
+              </form>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="overlay" id="overlay"></div>
+
+    <aside class="drawer" id="drawer" aria-labelledby="drawerTitle">
+      <div class="drawer-head">
+        <div>
+          <h2 id="drawerTitle">新增商品</h2>
+          <p>填寫商品與購買地點資訊，儲存後立即更新清單。</p>
+        </div>
+        <button class="close" id="closeDrawer" type="button" aria-label="關閉">×</button>
+      </div>
+
+      <form class="form" id="itemForm">
+        <input type="hidden" id="itemId">
+        <div class="form-grid">
+          <div class="field full">
+            <label for="nameJa">商品名稱（日文） <span class="required">必填</span></label>
+            <input id="nameJa" required>
+          </div>
+          <div class="field full">
+            <label for="description">商品資訊／描述 <span>選填</span></label>
+            <textarea id="description" placeholder="口味、容量、保存方式或備註"></textarea>
+          </div>
+          <div class="field">
+            <label for="qty">數量 <span>選填</span></label>
+            <input id="qty" type="number" min="1" step="1" placeholder="選填">
+          </div>
+          <div class="field">
+            <label for="unitPrice">單價 <span>選填</span></label>
+            <input id="unitPrice" type="number" min="0" step="1" placeholder="選填">
+          </div>
+          <div class="field">
+            <label>總價 <span>唯讀</span></label>
+            <div class="calc" id="totalPreview">¥0</div>
+          </div>
+          <div class="field">
+            <label for="currency">貨幣 <span class="required">必填</span></label>
+            <select id="currency">
+              <option>JPY</option>
+              <option>TWD</option>
+              <option>USD</option>
+            </select>
+          </div>
+          <div class="field full">
+            <label for="trip">旅程 <span class="required">必填</span></label>
+            <select id="trip" required></select>
+          </div>
+          <div class="field">
+            <label for="region">地區／城市 <span class="required">必填</span></label>
+            <input id="region" required>
+          </div>
+          <div class="field">
+            <label for="location">購買地點 <span class="required">必填</span></label>
+            <input id="location" required placeholder="例如：宮島表參道">
+          </div>
+          <div class="field full">
+            <label for="mapsUrl">Google Maps 連結 <span class="required">必填</span></label>
+            <input id="mapsUrl" type="url" placeholder="https://www.google.com/maps/..." required>
+          </div>
+          <div class="field">
+            <label for="imageFile">商品圖片 <span>選填</span></label>
+            <input id="imageFile" type="file" accept="image/*">
+          </div>
+          <div class="field full">
+            <div class="image-preview" id="imagePreview">尚未選擇圖片</div>
+          </div>
+        </div>
+      </form>
+
+      <div class="drawer-foot">
+        <button class="delete-item" id="deleteFromDrawer" type="button">刪除</button>
+        <button class="outline" id="cancelDrawer" type="button">取消</button>
+        <button class="primary" form="itemForm" type="submit">儲存商品</button>
+      </div>
+    </aside>
+
+    <aside class="auth-modal" id="authModal" aria-labelledby="authTitle">
+      <div class="auth-head">
+        <div>
+          <h2 id="authTitle">登入／註冊 TripCart</h2>
+          <p>與旅伴共享購物清單與編輯權限。</p>
+        </div>
+        <button class="close" id="closeAuthModal" type="button" aria-label="關閉">×</button>
+      </div>
+
+      <form class="auth-form" id="authForm">
+        <label for="authEmail">Email／登入帳號</label>
+        <input id="authEmail" type="email" autocomplete="email" required placeholder="name@example.com">
+        <label for="authDisplayName">使用者名稱 <span>註冊時選填</span></label>
+        <input id="authDisplayName" type="text" autocomplete="name" maxlength="80" placeholder="例如：小明">
+        <label for="authPassword">密碼</label>
+        <input id="authPassword" type="password" autocomplete="current-password" minlength="6" required placeholder="至少 6 個字元">
+        <div class="auth-actions">
+          <button class="outline" type="submit" data-auth-action="signup">註冊</button>
+          <button class="primary" type="submit" data-auth-action="signin">登入</button>
+        </div>
+        <p class="auth-note">Email 僅用於登入，不寄送通知信；註冊後即可直接登入，不需要 Email 驗證。</p>
+      </form>
+    </aside>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="module" src="app.js"></script>
+  </body>
 </html>
