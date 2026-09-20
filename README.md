@@ -15,6 +15,17 @@
 
 啟用 Supabase 後，Supabase 是多人共享資料的主要來源；訪客可查看資料，登入後才能新增、編輯或刪除。若 Supabase 暫時無法連線，頁面會退回 JSON 與 localStorage 的本機模式。
 
+## 前端程式結構
+
+- `index.html`：只保留頁面結構與欄位，不再內嵌大型樣式或行內事件。
+- `styles.css`：集中管理版面、元件與響應式樣式。
+- `app.js`：應用程式入口與事件註冊，負責把各功能模組串起來。
+- `js/state.js`：共用狀態與外部服務連線狀態。
+- `js/data.js`：JSON、localStorage、Supabase 資料讀寫與資料轉換。
+- `js/auth.js`、`js/cloudinary.js`：登入權限與 Cloudinary 圖片上傳。
+- `js/products.js`、`js/trips.js`、`js/reminders.js`：商品、旅程與位置提醒功能。
+- `js/utils.js`：DOM、格式化、HTML 安全轉義與提示訊息等共用工具。
+
 ## Supabase 多人共享設定
 
 1. 新專案可在 Supabase SQL Editor 執行 `supabase/schema.sql`；既有專案執行 `supabase/trips-migration.txt`。
