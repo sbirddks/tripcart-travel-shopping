@@ -7,8 +7,19 @@
 - `data/products.json`：商品名稱、描述、數量、單價、圖片、購買狀態與對應地點 ID。
 - `data/locations.json`：地區／城市、店名、地址與 Google Maps 連結、定位座標。
 - `data/cloudinary.json`：Cloudinary 圖片上傳設定（只放 cloud name 與 unsigned upload preset，不放 API secret）。
+- `data/supabase.json`：Supabase 專案 URL 與 publishable key；publishable key 可放在前端，但不可放 service role key。
+- `supabase/schema.sql`：Supabase 資料表、RLS 權限、Realtime 與初始資料腳本。
 
-頁面會先讀取上述 JSON，再將商品與地點資料合併顯示；使用者在頁面新增或編輯的資料會暫存在瀏覽器的 localStorage，保留本機操作結果。
+啟用 Supabase 後，Supabase 是多人共享資料的主要來源；訪客可查看資料，登入後才能新增、編輯或刪除。若 Supabase 暫時無法連線，頁面會退回 JSON 與 localStorage 的本機模式。
+
+## Supabase 多人共享設定
+
+1. 在 Supabase SQL Editor 執行 `supabase/schema.sql`。
+2. 確認 `data/supabase.json` 的 URL 與 publishable key 對應目前專案。
+3. 網站右上角註冊／登入帳號；完成登入後即可共享編輯。
+4. Supabase Auth 的 Email 驗證若有開啟，註冊後要先完成信箱驗證。
+
+目前 RLS 設計為公開讀取、登入後寫入；後續若要限制不同旅程的成員，可再加入 `trip_members` 表與旅程層級權限。
 
 ## Cloudinary 圖片上傳
 

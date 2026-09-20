@@ -6,9 +6,11 @@ const state = {
   editingId: null,
   editingLocationId: "",
   imageData: "",
-  imageFile: null
+  imageFile: null,
+  session: null
 };
 const cloudinary = { config: {} };
+const remote = { config: {}, client: null, channel: null };
 const $ = (id) => document.getElementById(id);
 
 async function loadCloudinaryConfig() {
@@ -32,7 +34,166 @@ function cloudinaryReady() {
   );
 }
 
-async function loadProducts() {
+async function loadSupabaseConfig() {
+  try {
+    const response = await fetch("data/supabase.json");
+    if (!response.ok || !window.supabase || typeof window.supabase.createClient !== "function") return;
+    const config = await response.json();
+    if (config.enabled && config.url && config.publishableKey) {
+      remote.config = config;
+      remote.client = window.supabase.createClient(config.url, config.publishableKey);
+    }
+  } catch (error) {
+    remote.config = {};
+    remote.client = null;
+  }
+}
+
+function remoteReady() {
+  return Boolean(remote.client);
+}
+
+function authenticated() {
+  return Boolean(state.session);
+}
+
+async function initAuth() {
+  if (!remoteReady()) return;
+  const { data, error } = await remote.client.auth.getSession();
+  if (error) throw error;
+  state.session = data.session;
+  remote.client.auth.onAuthStateChange((_event, session) => {
+    state.session = session;
+    updateAuthUI();
+    if (session && !state.editingId) refreshRemoteProducts();
+    render();
+  });
+}
+
+function updateAuthUI() {
+  const status = $("authStatus");
+  const button = $("authButton");
+  if (!status || !button) return;
+  if (!remoteReady()) {
+    status.textContent = "本地資料模式";
+    button.style.display = "none";
+    return;
+  }
+  button.style.display = "inline-block";
+  if (authenticated()) {
+    status.textContent = "已登入：" + (state.session.user.email || "旅伴");
+    button.textContent = "登出";
+  } else {
+    status.textContent = "訪客模式 · 登入後可編輯";
+    button.textContent = "登入／註冊";
+  }
+}
+
+function openAuthModal() {
+  $("authModal").classList.add("show");
+  $("authEmail").focus();
+}
+
+function closeAuthModal() {
+  $("authModal").classList.remove("show");
+}
+
+async function handleAuth(action) {
+  if (!remoteReady()) return;
+  const email = $("authEmail").value.trim();
+  const password = $("authPassword").value;
+  try {
+    const result = action === "signup"
+      ? await remote.client.auth.signUp({ email, password })
+      : await remote.client.auth.signInWithPassword({ email, password });
+    if (result.error) throw result.error;
+    closeAuthModal();
+    if (action === "signup" && !result.data.session) {
+      showToast("註冊成功，請先完成 Email 驗證。", "good");
+    } else {
+      showToast("登入成功，已啟用共享編輯。", "good");
+    }
+  } catch (error) {
+    showToast(error.message || "登入失敗，請確認帳號資料。", "warn");
+  }
+}
+
+function requireAuthentication() {
+  if (!remoteReady() || authenticated()) return true;
+  showToast("請先登入，才能新增、編輯或刪除共享資料。", "warn");
+  openAuthModal();
+  return false;
+}
+
+function remoteLocationFromRow(row) {
+  return {
+    region: row.region || "",
+    city: row.city || "",
+    store: row.store || "",
+    location: row.location || "",
+    mapsUrl: row.maps_url || "",
+    lat: row.lat,
+    lng: row.lng
+  };
+}
+
+function remoteProductFromRow(row) {
+  return {
+    id: row.id,
+    locationId: row.location_id || "",
+    trip: row.trip || "",
+    nameJa: row.name_ja || "",
+    nameZh: row.name_zh || "",
+    description: row.description || "",
+    qty: row.qty,
+    unitPrice: Number(row.unit_price || 0),
+    currency: row.currency || "JPY",
+    image: row.image_url || "",
+    status: row.status || "pending"
+  };
+}
+
+async function loadRemoteProducts() {
+  const [locationResult, productResult] = await Promise.all([
+    remote.client.from("locations").select("id,region,city,store,location,maps_url,lat,lng").order("store"),
+    remote.client.from("products").select("id,location_id,trip,name_ja,name_zh,description,qty,unit_price,currency,image_url,status").order("created_at", { ascending: false })
+  ]);
+  if (locationResult.error) throw locationResult.error;
+  if (productResult.error) throw productResult.error;
+  const locationMap = Object.fromEntries((locationResult.data || []).map((location) => [location.id, remoteLocationFromRow(location)]));
+  return (productResult.data || []).map((product) => Object.assign(
+    {},
+    remoteProductFromRow(product),
+    locationMap[product.location_id] || {}
+  ));
+}
+
+async function refreshRemoteProducts(message) {
+  if (!remoteReady()) return;
+  try {
+    state.products = await loadRemoteProducts();
+    initFilters();
+    render();
+    if (message) showToast(message, "good");
+  } catch (error) {
+    console.error(error);
+    if (message) showToast("共享資料同步失敗，請稍後再試。", "warn");
+  }
+}
+
+function subscribeToRemoteChanges() {
+  if (!remoteReady()) return;
+  const refresh = () => {
+    if (!state.editingId) refreshRemoteProducts("旅伴已更新共享資料");
+  };
+  remote.channel = remote.client
+    .channel("tripcart-shared-data")
+    .on("postgres_changes", { event: "*", schema: "public", table: "products" }, refresh)
+    .on("postgres_changes", { event: "*", schema: "public", table: "locations" }, refresh)
+    .subscribe();
+}
+
+async function loadProductsFromJson() {
   const responses = await Promise.all([
     fetch("data/locations.json"),
     fetch("data/products.json")
@@ -71,6 +232,18 @@ async function loadProducts() {
   }
 
   return canonicalProducts;
+}
+
+async function loadProducts() {
+  if (remoteReady()) {
+    try {
+      return await loadRemoteProducts();
+    } catch (error) {
+      console.warn("Unable to load shared Supabase data; using local seed data", error);
+      showToast("共享資料暫時無法讀取，先顯示本地初始資料。", "warn");
+    }
+  }
+  return loadProductsFromJson();
 }
 
 function saveProducts() {
@@ -188,6 +361,7 @@ function showToast(message, type) {
 }
 
 function openDrawer(id) {
+  if (!requireAuthentication()) return;
   state.editingId = id;
   const product = id
     ? state.products.find((item) => item.id === id)
@@ -286,15 +460,67 @@ async function uploadImageToCloudinary(file) {
   return result.secure_url;
 }
 
-function removeItem(id) {
+async function saveProductToRemote(data) {
+  if (!requireAuthentication()) throw new Error("請先登入共享帳號");
+  const matchingLocation = state.products.find((product) =>
+    product.locationId &&
+    product.store === data.store &&
+    product.location === data.location &&
+    product.mapsUrl === data.mapsUrl
+  );
+  const locationId = data.locationId || matchingLocation?.locationId || "location-" + Date.now();
+  const locationRow = {
+    id: locationId,
+    region: data.region,
+    city: data.region,
+    store: data.store,
+    location: data.location,
+    maps_url: data.mapsUrl,
+    lat: data.lat,
+    lng: data.lng
+  };
+  const { error: locationError } = await remote.client.from("locations").upsert(locationRow);
+  if (locationError) throw locationError;
+  const productRow = {
+    id: data.id,
+    location_id: locationId,
+    trip: data.trip,
+    name_ja: data.nameJa,
+    name_zh: data.nameZh,
+    description: data.description,
+    qty: data.qty,
+    unit_price: data.unitPrice,
+    currency: data.currency,
+    image_url: data.image,
+    status: data.status
+  };
+  const { error: productError } = await remote.client.from("products").upsert(productRow);
+  if (productError) throw productError;
+  return locationId;
+}
+
+async function removeItem(id) {
   const product = state.products.find((item) => item.id === id);
   if (!product) return;
+  if (!requireAuthentication()) return;
   if (confirm("確定刪除「" + (product.nameZh || product.nameJa) + "」嗎？")) {
-    state.products = state.products.filter((item) => item.id !== id);
-    saveProducts();
-    closeDrawer();
-    render();
-    showToast("商品已刪除");
+    try {
+      if (remoteReady()) {
+        const { error } = await remote.client.from("products").delete().eq("id", id);
+        if (error) throw error;
+        state.products = await loadRemoteProducts();
+      } else {
+        state.products = state.products.filter((item) => item.id !== id);
+        saveProducts();
+      }
+      closeDrawer();
+      initFilters();
+      render();
+      showToast("商品已刪除");
+    } catch (error) {
+      console.error(error);
+      showToast(error.message || "刪除失敗，請稍後再試。", "warn");
+    }
   }
 }
 
@@ -369,6 +595,7 @@ async function handleSubmit(event) {
   submitButton.disabled = true;
   submitButton.textContent = state.imageFile ? "圖片上傳中…" : "儲存中…";
   try {
+    if (!requireAuthentication()) return;
     let imageUrl = state.imageData || "";
     if (state.imageFile) imageUrl = await uploadImageToCloudinary(state.imageFile);
     const data = {
@@ -391,9 +618,14 @@ async function handleSubmit(event) {
       lng: 132.4759
     };
     const index = state.products.findIndex((product) => product.id === data.id);
-    if (index >= 0) state.products[index] = data;
-    else state.products.unshift(data);
-    saveProducts();
+    if (remoteReady()) {
+      data.locationId = await saveProductToRemote(data);
+      state.products = await loadRemoteProducts();
+    } else {
+      if (index >= 0) state.products[index] = data;
+      else state.products.unshift(data);
+      saveProducts();
+    }
     initFilters();
     closeDrawer();
     render();
@@ -423,6 +655,21 @@ $("search").addEventListener("input", (event) => {
 });
 $("resetFilters").addEventListener("click", resetFilters);
 $("addItem").addEventListener("click", () => openDrawer());
+$("authButton").addEventListener("click", async () => {
+  if (!remoteReady()) return;
+  if (authenticated()) {
+    const { error } = await remote.client.auth.signOut();
+    if (error) showToast(error.message || "登出失敗", "warn");
+    else showToast("已登出共享帳號");
+  } else {
+    openAuthModal();
+  }
+});
+$("closeAuthModal").addEventListener("click", closeAuthModal);
+$("authForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  handleAuth(event.submitter?.dataset.action || "signin");
+});
 $("closeDrawer").addEventListener("click", closeDrawer);
 $("cancelDrawer").addEventListener("click", closeDrawer);
 $("overlay").addEventListener("click", closeDrawer);
@@ -443,15 +690,18 @@ $("itemForm").addEventListener("submit", handleSubmit);
 
 async function boot() {
   try {
-    await loadCloudinaryConfig();
+    await Promise.all([loadCloudinaryConfig(), loadSupabaseConfig()]);
+    await initAuth();
+    updateAuthUI();
     state.products = await loadProducts();
     initFilters();
     render();
+    subscribeToRemoteChanges();
   } catch (error) {
     console.error(error);
     $("resultText").textContent = "資料載入失敗";
-    $("cards").innerHTML = '<div class="empty">無法讀取商品資料。請使用 localhost 或 HTTPS 開啟網站，讓頁面可以讀取 data/products.json 與 data/locations.json。</div>';
-    showToast("商品資料載入失敗，請確認網站是透過伺服器開啟", "warn");
+    $("cards").innerHTML = '<div class="empty">無法讀取商品資料。請確認 Supabase 連線或使用 localhost／HTTPS 開啟網站。</div>';
+    showToast("商品資料載入失敗，請確認 Supabase 設定", "warn");
   }
 }
 boot();
