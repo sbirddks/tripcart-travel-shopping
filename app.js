@@ -1005,7 +1005,13 @@ $("cards").addEventListener("click", (event) => {
   const action = event.target.closest("[data-product-action]");
   if (!action) return;
   const id = action.dataset.productId;
-  if (action.dataset.productAction === "edit") openDrawer(id);
+  if (action.dataset.productAction === "edit") {
+    openDrawer(id);
+    if (id && $("drawer").classList.contains("show")) {
+      state.editingId = id;
+      $("itemId").value = id;
+    }
+  }
   if (action.dataset.productAction === "delete") removeItem(id);
   if (action.dataset.productAction === "map") showToast("尚未設定 Google Maps 連結", "warn");
 });
