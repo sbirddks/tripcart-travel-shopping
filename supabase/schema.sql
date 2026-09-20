@@ -357,6 +357,20 @@ on conflict (id) do update set
   name = excluded.name,
   primary_location = excluded.primary_location;
 
+insert into public.trips (id, name, primary_location)
+select
+  'trip-' || substr(md5(trim(p.trip)), 1, 12),
+  trim(p.trip),
+  coalesce(max(l.region), '')
+from public.products p
+left join public.locations l on l.id = p.location_id
+where trim(p.trip) <> ''
+  and not exists (select 1 from public.trips t where t.name = trim(p.trip))
+group by trim(p.trip)
+on conflict (id) do update set
+  name = excluded.name,
+  primary_location = excluded.primary_location;
+
 update public.products p
 set trip_id = t.id
 from public.trips t

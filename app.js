@@ -193,7 +193,8 @@ function remoteTripFromRow(row) {
     name: row.name || "",
     startDate: row.start_date || "",
     endDate: row.end_date || "",
-    primaryLocation: row.primary_location || ""
+    primaryLocation: row.primary_location || "",
+    persisted: true
   };
 }
 
@@ -244,7 +245,8 @@ function ensureTripsFromProducts(products = state.products) {
       name: product.trip,
       startDate: "",
       endDate: "",
-      primaryLocation: product.region || ""
+      primaryLocation: product.region || "",
+      fallback: true
     };
     known.set(trip.name, trip);
   });
@@ -640,6 +642,8 @@ async function saveProductToRemote(data) {
     product.region === data.region
   );
   const locationId = data.locationId || matchingLocation?.locationId || "location-" + Date.now();
+  const selectedTrip = state.trips.find((trip) => trip.id === data.tripId);
+  const tripId = selectedTrip?.fallback ? null : (data.tripId || null);
   const locationRow = {
     id: locationId,
     region: data.region,
@@ -655,7 +659,7 @@ async function saveProductToRemote(data) {
   const productRow = {
     id: data.id,
     location_id: locationId,
-    trip_id: data.tripId || null,
+    trip_id: tripId,
     trip: data.trip,
     name_ja: data.nameJa,
     name_zh: "",
