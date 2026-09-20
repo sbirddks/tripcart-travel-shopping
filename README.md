@@ -18,6 +18,7 @@
 2. 確認 `data/supabase.json` 的 URL 與 publishable key 對應目前專案。
 3. 網站右上角註冊／登入帳號；完成登入後即可共享編輯。
 4. Supabase Auth 的 Email 驗證若有開啟，註冊後要先完成信箱驗證。
+5. 在 Supabase Authentication → URL Configuration，將 `https://sbirddks.github.io/tripcart-travel-shopping/` 設為 Site URL 與 Redirect URL，讓驗證信能返回網站。
 
 `public.tripcart_users` 是登入帳號對應的網站使用者資料表，只保存 Email、顯示名稱、頭像網址與最近登入時間；密碼仍由 Supabase Auth 的 `auth.users` 管理，不會寫入前端資料表。新帳號會由資料庫 trigger 自動建立資料列，RLS 只允許登入者讀寫自己的使用者資料。
 
