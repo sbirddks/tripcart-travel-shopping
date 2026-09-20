@@ -1,0 +1,18 @@
+{
+  "trips": [
+    {
+      "id": "hiroshima-3d2n",
+      "name": "廣島 3 天 2 夜",
+      "startDate": "",
+      "endDate": "",
+      "primaryLocation": "廣島"
+    },
+    {
+      "id": "okayama-2d1n",
+      "name": "岡山 2 天 1 夜",
+      "startDate": "",
+      "endDate": "",
+      "primaryLocation": "岡山"
+    }
+  ]
+}

@@ -6,15 +6,18 @@
 
 - `data/products.json`：商品名稱、描述、數量、單價、圖片、購買狀態與對應地點 ID。
 - `data/locations.json`：地區／城市、店名、地址與 Google Maps 連結、定位座標。
+- `data/trips.json`：旅程 header（旅程名稱、起迄日期、主要地點）。
+- `data/trip-details.json`：旅程 detail（主要景點、起迄日、交通方式、班次與費用）。
 - `data/cloudinary.json`：Cloudinary 圖片上傳設定（只放 cloud name 與 unsigned upload preset，不放 API secret）。
 - `data/supabase.json`：Supabase 專案 URL 與 publishable key；publishable key 可放在前端，但不可放 service role key。
 - `supabase/schema.sql`：Supabase 資料表、RLS 權限、Realtime 與初始資料腳本。
+- `supabase/trips-migration.txt`：已建立既有 Supabase 專案時，新增旅程資料表所使用的一次性更新 SQL。
 
 啟用 Supabase 後，Supabase 是多人共享資料的主要來源；訪客可查看資料，登入後才能新增、編輯或刪除。若 Supabase 暫時無法連線，頁面會退回 JSON 與 localStorage 的本機模式。
 
 ## Supabase 多人共享設定
 
-1. 在 Supabase SQL Editor 執行 `supabase/schema.sql`。
+1. 新專案可在 Supabase SQL Editor 執行 `supabase/schema.sql`；既有專案執行 `supabase/trips-migration.txt`。
 2. 確認 `data/supabase.json` 的 URL 與 publishable key 對應目前專案。
 3. 網站右上角註冊／登入帳號；完成登入後即可共享編輯。
 4. Supabase Authentication → Sign In / Providers 請關閉 `Confirm email`，讓註冊後可以立即登入。
@@ -22,7 +25,7 @@
 
 `public.tripcart_users` 是登入帳號對應的網站使用者資料表，只保存 Email、顯示名稱、頭像網址與最近登入時間；密碼仍由 Supabase Auth 的 `auth.users` 管理，不會寫入前端資料表。新帳號會由資料庫 trigger 自動建立資料列，RLS 只允許登入者讀寫自己的使用者資料。
 
-目前 RLS 設計為公開讀取、登入後寫入；後續若要限制不同旅程的成員，可再加入 `trip_members` 表與旅程層級權限。
+目前 RLS 設計為公開讀取、登入後寫入；商品會以旅程下拉選單選擇 `trip_id`，旅程則拆成 `trips` header 與 `trip_details` detail 兩張表。後續若要限制不同旅程的成員，可再加入 `trip_members` 表與旅程層級權限。
 
 ## Cloudinary 圖片上傳
 

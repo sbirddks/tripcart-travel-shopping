@@ -1,17 +1,21 @@
 const state = {
   products: [],
+  trips: [],
+  tripDetails: [],
   trip: "all",
   region: "all",
   search: "",
   editingId: null,
   editingLocationId: "",
+  editingTripId: null,
+  tripEditorDetails: [],
   imageData: "",
   imageFile: null,
   session: null,
   profile: null
 };
 const cloudinary = { config: {} };
-const remote = { config: {}, client: null, channel: null };
+const remote = { config: {}, client: null, channel: null, tripDataLoaded: false };
 const $ = (id) => document.getElementById(id);
 
 async function loadCloudinaryConfig() {
@@ -183,10 +187,36 @@ function remoteLocationFromRow(row) {
   };
 }
 
+function remoteTripFromRow(row) {
+  return {
+    id: row.id,
+    name: row.name || "",
+    startDate: row.start_date || "",
+    endDate: row.end_date || "",
+    primaryLocation: row.primary_location || ""
+  };
+}
+
+function remoteTripDetailFromRow(row) {
+  return {
+    id: row.id,
+    tripId: row.trip_id,
+    attraction: row.attraction || "",
+    startDate: row.start_date || "",
+    endDate: row.end_date || "",
+    transportType: row.transport_type || "",
+    transportDetail: row.transport_detail || "",
+    cost: Number(row.cost || 0),
+    currency: row.currency || "JPY",
+    sortOrder: Number(row.sort_order || 0)
+  };
+}
+
 function remoteProductFromRow(row) {
   return {
     id: row.id,
     locationId: row.location_id || "",
+    tripId: row.trip_id || "",
     trip: row.trip || "",
     nameJa: row.name_ja || "",
     nameZh: row.name_zh || "",
@@ -199,19 +229,91 @@ function remoteProductFromRow(row) {
   };
 }
 
+function slugifyTrip(name) {
+  return String(name || "trip").trim().toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fff]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "trip";
+}
+
+function ensureTripsFromProducts(products = state.products) {
+  const known = new Map((state.trips || []).map((trip) => [trip.name, trip]));
+  (products || []).forEach((product) => {
+    if (!product.trip || known.has(product.trip)) return;
+    const trip = {
+      id: slugifyTrip(product.trip),
+      name: product.trip,
+      startDate: "",
+      endDate: "",
+      primaryLocation: product.region || ""
+    };
+    known.set(trip.name, trip);
+  });
+  state.trips = Array.from(known.values());
+  const tripIds = new Map(state.trips.map((trip) => [trip.name, trip.id]));
+  (products || []).forEach((product) => {
+    if (!product.tripId && product.trip) product.tripId = tripIds.get(product.trip) || "";
+  });
+}
+
+async function loadTripsFromJson() {
+  try {
+    const [tripResponse, detailResponse] = await Promise.all([
+      fetch("data/trips.json"),
+      fetch("data/trip-details.json")
+    ]);
+    if (!tripResponse.ok || !detailResponse.ok) return [];
+    const tripData = await tripResponse.json();
+    const detailData = await detailResponse.json();
+    state.trips = tripData.trips || [];
+    state.tripDetails = detailData.details || [];
+    try {
+      const savedTrips = JSON.parse(localStorage.getItem("tripcart-trips") || "null");
+      const savedDetails = JSON.parse(localStorage.getItem("tripcart-trip-details") || "null");
+      if (Array.isArray(savedTrips)) state.trips = savedTrips;
+      if (Array.isArray(savedDetails)) state.tripDetails = savedDetails;
+    } catch (error) {
+      console.warn("Unable to read local trip data", error);
+    }
+    return state.trips;
+  } catch (error) {
+    state.trips = [];
+    state.tripDetails = [];
+    return [];
+  }
+}
+
 async function loadRemoteProducts() {
   const [locationResult, productResult] = await Promise.all([
     remote.client.from("locations").select("id,region,city,store,location,maps_url,lat,lng").order("store"),
-    remote.client.from("products").select("id,location_id,trip,name_ja,name_zh,description,qty,unit_price,currency,image_url,status").order("created_at", { ascending: false })
+    remote.client.from("products").select("id,location_id,trip_id,trip,name_ja,name_zh,description,qty,unit_price,currency,image_url,status").order("created_at", { ascending: false })
   ]);
   if (locationResult.error) throw locationResult.error;
   if (productResult.error) throw productResult.error;
   const locationMap = Object.fromEntries((locationResult.data || []).map((location) => [location.id, remoteLocationFromRow(location)]));
-  return (productResult.data || []).map((product) => Object.assign(
+  const products = (productResult.data || []).map((product) => Object.assign(
     {},
     remoteProductFromRow(product),
     locationMap[product.location_id] || {}
   ));
+  try {
+    const [tripResult, detailResult] = await Promise.all([
+      remote.client.from("trips").select("id,name,start_date,end_date,primary_location").order("start_date", { ascending: true }),
+      remote.client.from("trip_details").select("id,trip_id,attraction,start_date,end_date,transport_type,transport_detail,cost,currency,sort_order").order("sort_order", { ascending: true })
+    ]);
+    if (!tripResult.error && !detailResult.error) {
+      state.trips = (tripResult.data || []).map(remoteTripFromRow);
+      state.tripDetails = (detailResult.data || []).map(remoteTripDetailFromRow);
+      remote.tripDataLoaded = true;
+    } else {
+      remote.tripDataLoaded = false;
+      ensureTripsFromProducts(products);
+    }
+  } catch (error) {
+    remote.tripDataLoaded = false;
+    ensureTripsFromProducts(products);
+  }
+  ensureTripsFromProducts(products);
+  return products;
 }
 
 async function refreshRemoteProducts(message) {
@@ -230,12 +332,14 @@ async function refreshRemoteProducts(message) {
 function subscribeToRemoteChanges() {
   if (!remoteReady()) return;
   const refresh = () => {
-    if (!state.editingId) refreshRemoteProducts("旅伴已更新共享資料");
+    if (!state.editingId && !state.editingTripId) refreshRemoteProducts("旅伴已更新共享資料");
   };
   remote.channel = remote.client
     .channel("tripcart-shared-data")
     .on("postgres_changes", { event: "*", schema: "public", table: "products" }, refresh)
     .on("postgres_changes", { event: "*", schema: "public", table: "locations" }, refresh)
+    .on("postgres_changes", { event: "*", schema: "public", table: "trips" }, refresh)
+    .on("postgres_changes", { event: "*", schema: "public", table: "trip_details" }, refresh)
     .subscribe();
 }
 
@@ -270,6 +374,7 @@ async function loadProductsFromJson() {
           return Object.assign({}, canonicalProduct || {}, product, { image });
         });
         localStorage.setItem("tripcart-products", JSON.stringify(normalizedProducts));
+        ensureTripsFromProducts(normalizedProducts);
         return normalizedProducts;
       }
     }
@@ -277,6 +382,7 @@ async function loadProductsFromJson() {
     console.warn("Unable to read local product data", error);
   }
 
+  ensureTripsFromProducts(canonicalProducts);
   return canonicalProducts;
 }
 
@@ -334,6 +440,18 @@ function fillSelect(select, values, allLabel) {
 function initFilters() {
   fillSelect($("tripFilter"), uniqueValues("trip"), "全部旅程");
   fillSelect($("regionFilter"), uniqueValues("region"), "全部地區");
+  fillTripOptions();
+}
+
+function fillTripOptions() {
+  const select = $("trip");
+  if (!select) return;
+  const current = select.value;
+  const options = (state.trips || []).map((trip) =>
+    '<option value="' + escapeHtml(trip.id) + '">' + escapeHtml(trip.name) + "</option>"
+  ).join("");
+  select.innerHTML = options || '<option value="">請先建立旅程</option>';
+  if ((state.trips || []).some((trip) => trip.id === current)) select.value = current;
 }
 
 function filtered() {
@@ -342,10 +460,10 @@ function filtered() {
     (state.region === "all" || product.region === state.region) &&
     (!state.search || [
       product.nameJa,
-      product.nameZh,
-      product.store,
       product.location,
-      product.region
+      product.region,
+      product.description,
+      product.trip
     ].join(" ").toLowerCase().includes(state.search.toLowerCase()))
   );
 }
@@ -371,19 +489,22 @@ function render() {
 function cardHtml(product) {
   const done = product.status === "done";
   const image = escapeHtml(product.image || "");
+  const productId = escapeHtml(product.id || "");
   return '<article class="card">' +
-    '<div class="thumb"><img src="' + image + '" alt="' + escapeHtml(product.nameZh || product.nameJa) + ' 商品圖片"></div>' +
+    '<div class="thumb"><img src="' + image + '" alt="' + escapeHtml(product.nameJa) + ' 商品圖片"></div>' +
     '<div class="card-body">' +
-      '<div class="card-title"><h3>' + escapeHtml(product.nameZh || product.nameJa) + '</h3>' +
+      '<div class="card-title"><h3>' + escapeHtml(product.nameJa) + '</h3>' +
         '<span class="status ' + (done ? "done" : "pending") + '">' + (done ? "已購買" : "待購買") + "</span></div>" +
-      '<div class="meta">' + escapeHtml(product.nameJa) + "　·　" + escapeHtml(product.store) + "　·　" + escapeHtml(product.region) + "</div>" +
+      '<div class="meta">' + escapeHtml(product.location || product.region) + "　·　" + escapeHtml(product.region) + "</div>" +
       '<p class="desc">' + escapeHtml(product.description || "尚未填寫商品描述") + "</p>" +
-      '<div class="money-row"><span>數量 ' + escapeHtml(product.qty) + "　單價 " + money(product.unitPrice, product.currency) + "</span>" +
+      '<div class="money-row"><span>數量 ' + escapeHtml(product.qty || "—") + "　單價 " + (product.unitPrice ? money(product.unitPrice, product.currency) : "—") + "</span>" +
         "<b>" + money(total(product), product.currency) + "</b></div>" +
       '<div class="card-actions">' +
-        '<a class="link" href="' + escapeHtml(product.mapsUrl || "#") + '" target="_blank" rel="noopener" onclick="if(this.getAttribute(\'href\')===\'#\'){event.preventDefault();showToast(\'尚未設定 Google Maps 連結\',\'warn\')}">開啟地圖</a>' +
-        '<button class="link" style="border:0;background:none;padding:0;font-weight:900" onclick="openDrawer(\'' + escapeHtml(product.id) + '\')">編輯</button>' +
-        '<button class="danger" onclick="removeItem(\'' + escapeHtml(product.id) + '\')">刪除</button>' +
+        (product.mapsUrl
+          ? '<a class="link" href="' + escapeHtml(product.mapsUrl) + '" target="_blank" rel="noopener">開啟地圖</a>'
+          : '<button class="link" data-product-action="map" data-product-id="' + productId + '">開啟地圖</button>') +
+        '<button class="link card-action" data-product-action="edit" data-product-id="' + productId + '">編輯</button>' +
+        '<button class="danger card-action" data-product-action="delete" data-product-id="' + productId + '">刪除</button>' +
       "</div>" +
     "</div></article>";
 }
@@ -414,35 +535,38 @@ function openDrawer(id) {
     : {
         id: "",
         nameJa: "",
-        nameZh: "",
         description: "",
-        qty: 1,
-        unitPrice: 0,
+        qty: "",
+        unitPrice: "",
         currency: "JPY",
-        trip: state.trip === "all" ? "廣島 3 天 2 夜" : state.trip,
-        region: state.region === "all" ? "廣島" : state.region,
-        store: "",
+        tripId: state.trip === "all" ? (state.trips[0]?.id || "") : (state.trips.find((trip) => trip.name === state.trip)?.id || ""),
+        trip: state.trip === "all" ? (state.trips[0]?.name || "") : state.trip,
+        region: state.region === "all" ? (state.trips[0]?.primaryLocation || "") : state.region,
         location: "",
         mapsUrl: "",
         status: "pending",
         image: "",
         locationId: ""
       };
+  if (id && !product) {
+    state.editingId = null;
+    showToast("找不到這筆商品，清單已重新整理。", "warn");
+    render();
+    return;
+  }
   $("drawerTitle").textContent = id ? "編輯商品" : "新增商品";
   $("deleteFromDrawer").style.visibility = id ? "visible" : "hidden";
   $("itemId").value = product.id || "";
   $("nameJa").value = product.nameJa || "";
-  $("nameZh").value = product.nameZh || "";
   $("description").value = product.description || "";
-  $("qty").value = product.qty || 1;
-  $("unitPrice").value = product.unitPrice || 0;
+  $("qty").value = product.qty ?? "";
+  $("unitPrice").value = product.unitPrice ?? "";
   $("currency").value = product.currency || "JPY";
-  $("trip").value = product.trip || "";
+  fillTripOptions();
+  $("trip").value = product.tripId || (state.trips.find((trip) => trip.name === product.trip)?.id || "");
   $("region").value = product.region || "";
-  $("store").value = product.store || "";
   $("location").value = product.location || "";
   $("mapsUrl").value = product.mapsUrl || "";
-  $("status").value = product.status || "pending";
   state.editingLocationId = product.locationId || "";
   state.imageData = product.image || "";
   state.imageFile = null;
@@ -508,18 +632,19 @@ async function uploadImageToCloudinary(file) {
 
 async function saveProductToRemote(data) {
   if (!requireAuthentication()) throw new Error("請先登入共享帳號");
+  const existingLocation = state.products.find((product) => product.locationId === data.locationId);
   const matchingLocation = state.products.find((product) =>
     product.locationId &&
-    product.store === data.store &&
     product.location === data.location &&
-    product.mapsUrl === data.mapsUrl
+    product.mapsUrl === data.mapsUrl &&
+    product.region === data.region
   );
   const locationId = data.locationId || matchingLocation?.locationId || "location-" + Date.now();
   const locationRow = {
     id: locationId,
     region: data.region,
     city: data.region,
-    store: data.store,
+    store: existingLocation?.store || matchingLocation?.store || data.location,
     location: data.location,
     maps_url: data.mapsUrl,
     lat: data.lat,
@@ -530,9 +655,10 @@ async function saveProductToRemote(data) {
   const productRow = {
     id: data.id,
     location_id: locationId,
+    trip_id: data.tripId || null,
     trip: data.trip,
     name_ja: data.nameJa,
-    name_zh: data.nameZh,
+    name_zh: "",
     description: data.description,
     qty: data.qty,
     unit_price: data.unitPrice,
@@ -549,7 +675,7 @@ async function removeItem(id) {
   const product = state.products.find((item) => item.id === id);
   if (!product) return;
   if (!requireAuthentication()) return;
-  if (confirm("確定刪除「" + (product.nameZh || product.nameJa) + "」嗎？")) {
+  if (confirm("確定刪除「" + product.nameJa + "」嗎？")) {
     try {
       if (remoteReady()) {
         const { error } = await remote.client.from("products").delete().eq("id", id);
@@ -617,7 +743,7 @@ function checkNearby(latitude, longitude) {
       const distance = haversine(latitude, longitude, product.lat, product.lng);
       if (distance <= radius && !notified[product.id]) {
         notified[product.id] = Date.now();
-        const message = "你已接近 " + product.location + " 的 " + product.store + "（約 " + Math.round(distance) + " m）";
+        const message = "你已接近 " + (product.store || product.location) + "（約 " + Math.round(distance) + " m）";
         showToast(message, "good");
         if ("Notification" in window && Notification.permission === "granted") {
           try { new Notification("TripCart 位置提醒", { body: message }); } catch (error) {}
@@ -630,7 +756,184 @@ function demoNear() {
   const product = state.products.find((item) => item.status === "pending" && item.lat && item.lng);
   if (product) {
     notified = {};
-    showToast("模擬接近 " + product.store + "，已顯示位置提醒。", "good");
+    showToast("模擬接近 " + (product.store || product.location) + "，已顯示位置提醒。", "good");
+  }
+}
+
+function blankTripDetail() {
+  return {
+    id: "",
+    tripId: state.editingTripId || "",
+    attraction: "",
+    startDate: "",
+    endDate: "",
+    transportType: "",
+    transportDetail: "",
+    cost: "",
+    currency: "JPY",
+    sortOrder: state.tripEditorDetails.length
+  };
+}
+
+function renderTripList() {
+  const list = $("tripList");
+  if (!list) return;
+  list.innerHTML = state.trips.length
+    ? state.trips.map((trip) => {
+        const details = state.tripDetails.filter((detail) => detail.tripId === trip.id).length;
+        const dates = [trip.startDate, trip.endDate].filter(Boolean).join(" ～ ") || "尚未設定日期";
+        return '<article class="trip-list-item ' + (state.editingTripId === trip.id ? "active" : "") + '">' +
+          '<div><strong>' + escapeHtml(trip.name) + '</strong><small>' + escapeHtml(dates) + " · " + escapeHtml(trip.primaryLocation || "尚未設定主要地點") + " · " + details + " 筆明細</small></div>" +
+          '<button class="link trip-action" data-trip-action="edit" data-trip-id="' + escapeHtml(trip.id) + '">編輯</button>' +
+        "</article>";
+      }).join("")
+    : '<div class="empty">目前還沒有旅程，請先新增一個旅程。</div>';
+}
+
+function tripDetailHtml(detail, index) {
+  const transportOptions = ["", "飛機", "巴士", "JR", "地鐵", "計程車", "步行", "其他"];
+  return '<div class="trip-detail-row" data-detail-index="' + index + '">' +
+    '<div class="detail-row-head"><strong>明細 ' + (index + 1) + '</strong><button type="button" class="danger remove-detail" data-detail-action="remove">移除</button></div>' +
+    '<div class="detail-grid">' +
+      '<div class="field full"><label>主要景點（都市或景點名稱）</label><input data-detail-field="attraction" value="' + escapeHtml(detail.attraction) + '" placeholder="例如：宮島、岡山城"></div>' +
+      '<div class="field"><label>起日</label><input type="date" data-detail-field="startDate" value="' + escapeHtml(detail.startDate) + '"></div>' +
+      '<div class="field"><label>迄日</label><input type="date" data-detail-field="endDate" value="' + escapeHtml(detail.endDate) + '"></div>' +
+      '<div class="field"><label>交通方式</label><select data-detail-field="transportType">' + transportOptions.map((option) => '<option value="' + escapeHtml(option) + '"' + (detail.transportType === option ? " selected" : "") + '>' + escapeHtml(option || "請選擇") + "</option>").join("") + '</select></div>' +
+      '<div class="field"><label>航班／班次／備註</label><input data-detail-field="transportDetail" value="' + escapeHtml(detail.transportDetail) + '" placeholder="例如：JL 258、快速列車"></div>' +
+      '<div class="field"><label>費用</label><input type="number" min="0" step="1" data-detail-field="cost" value="' + escapeHtml(detail.cost ?? "") + '" placeholder="選填"></div>' +
+      '<div class="field"><label>貨幣</label><select data-detail-field="currency"><option value="JPY"' + (detail.currency === "JPY" ? " selected" : "") + '>JPY</option><option value="TWD"' + (detail.currency === "TWD" ? " selected" : "") + '>TWD</option><option value="USD"' + (detail.currency === "USD" ? " selected" : "") + '>USD</option></select></div>' +
+    '</div>' +
+  '</div>';
+}
+
+function renderTripPage() {
+  renderTripList();
+  const trip = state.trips.find((item) => item.id === state.editingTripId);
+  $("tripFormTitle").textContent = trip ? "編輯旅程" : "新增旅程";
+  $("tripId").value = trip?.id || "";
+  $("tripName").value = trip?.name || "";
+  $("tripStartDate").value = trip?.startDate || "";
+  $("tripEndDate").value = trip?.endDate || "";
+  $("tripPrimaryLocation").value = trip?.primaryLocation || "";
+  $("tripDetailsRows").innerHTML = state.tripEditorDetails.map(tripDetailHtml).join("");
+}
+
+function openTripPage() {
+  $("productsPage").hidden = true;
+  $("tripPage").hidden = false;
+  if (!state.editingTripId && state.trips[0]) {
+    state.editingTripId = state.trips[0].id;
+    state.tripEditorDetails = state.tripDetails.filter((detail) => detail.tripId === state.editingTripId).map((detail) => Object.assign({}, detail));
+  }
+  renderTripPage();
+}
+
+function closeTripPage() {
+  $("tripPage").hidden = true;
+  $("productsPage").hidden = false;
+}
+
+function newTripEditor() {
+  if (!requireAuthentication()) return;
+  state.editingTripId = null;
+  state.tripEditorDetails = [blankTripDetail()];
+  renderTripPage();
+}
+
+function editTrip(id) {
+  if (!requireAuthentication()) return;
+  const trip = state.trips.find((item) => item.id === id);
+  if (!trip) return;
+  state.editingTripId = id;
+  state.tripEditorDetails = state.tripDetails.filter((detail) => detail.tripId === id).map((detail) => Object.assign({}, detail));
+  if (!state.tripEditorDetails.length) state.tripEditorDetails = [blankTripDetail()];
+  renderTripPage();
+}
+
+function saveTripsLocally() {
+  try {
+    localStorage.setItem("tripcart-trips", JSON.stringify(state.trips));
+    localStorage.setItem("tripcart-trip-details", JSON.stringify(state.tripDetails));
+  } catch (error) {
+    console.warn("Unable to save local trip data", error);
+  }
+}
+
+async function saveTripToRemote(trip, details) {
+  if (!requireAuthentication()) throw new Error("請先登入共享帳號");
+  const tripRow = {
+    id: trip.id,
+    name: trip.name,
+    start_date: trip.startDate || null,
+    end_date: trip.endDate || null,
+    primary_location: trip.primaryLocation
+  };
+  const { error: tripError } = await remote.client.from("trips").upsert(tripRow);
+  if (tripError) throw tripError;
+  const { error: productError } = await remote.client.from("products").update({ trip: trip.name }).eq("trip_id", trip.id);
+  if (productError) throw productError;
+  const { error: deleteError } = await remote.client.from("trip_details").delete().eq("trip_id", trip.id);
+  if (deleteError) throw deleteError;
+  const rows = details.filter((detail) => detail.attraction || detail.transportType || detail.transportDetail || detail.cost).map((detail, index) => ({
+    id: detail.id || "detail-" + Date.now() + "-" + index,
+    trip_id: trip.id,
+    attraction: detail.attraction,
+    start_date: detail.startDate || null,
+    end_date: detail.endDate || null,
+    transport_type: detail.transportType,
+    transport_detail: detail.transportDetail,
+    cost: Number(detail.cost || 0),
+    currency: detail.currency || "JPY",
+    sort_order: index
+  }));
+  if (rows.length) {
+    const { error: detailError } = await remote.client.from("trip_details").insert(rows);
+    if (detailError) throw detailError;
+  }
+}
+
+async function handleTripSubmit(event) {
+  event.preventDefault();
+  if (!requireAuthentication()) return;
+  const name = $("tripName").value.trim();
+  if (!name) {
+    showToast("請先輸入旅程名稱。", "warn");
+    $("tripName").focus();
+    return;
+  }
+  const oldTrip = state.trips.find((trip) => trip.id === state.editingTripId);
+  const trip = {
+    id: state.editingTripId || slugifyTrip(name) + "-" + Date.now(),
+    name,
+    startDate: $("tripStartDate").value,
+    endDate: $("tripEndDate").value,
+    primaryLocation: $("tripPrimaryLocation").value.trim()
+  };
+  const details = state.tripEditorDetails.map((detail, index) => Object.assign({}, detail, { tripId: trip.id, sortOrder: index }));
+  try {
+    if (remoteReady()) {
+      await saveTripToRemote(trip, details);
+      state.products = await loadRemoteProducts();
+    } else {
+      state.trips = state.trips.filter((item) => item.id !== trip.id);
+      state.trips.push(trip);
+      state.tripDetails = state.tripDetails.filter((detail) => detail.tripId !== trip.id).concat(details.map((detail, index) => Object.assign({}, detail, { id: detail.id || "detail-" + Date.now() + "-" + index })));
+      state.products.forEach((product) => {
+        if (product.tripId === trip.id || (oldTrip && product.trip === oldTrip.name)) product.trip = trip.name;
+      });
+      saveTripsLocally();
+      saveProducts();
+    }
+    state.editingTripId = trip.id;
+    state.tripEditorDetails = state.tripDetails.filter((detail) => detail.tripId === trip.id).map((detail) => Object.assign({}, detail));
+    ensureTripsFromProducts(state.products);
+    initFilters();
+    renderTripPage();
+    render();
+    showToast(oldTrip ? "旅程已更新" : "旅程已新增");
+  } catch (error) {
+    console.error(error);
+    showToast(error.message || "旅程儲存失敗，請稍後再試。", "warn");
   }
 }
 
@@ -648,17 +951,16 @@ async function handleSubmit(event) {
       id: $("itemId").value || "item-" + Date.now(),
       locationId: state.editingLocationId || "",
       nameJa: $("nameJa").value.trim(),
-      nameZh: $("nameZh").value.trim(),
       description: $("description").value.trim(),
-      qty: Number($("qty").value),
-      unitPrice: Number($("unitPrice").value),
+      qty: Number($("qty").value) || 1,
+      unitPrice: Number($("unitPrice").value) || 0,
       currency: $("currency").value,
-      trip: $("trip").value.trim(),
+      tripId: $("trip").value,
+      trip: state.trips.find((trip) => trip.id === $("trip").value)?.name || "",
       region: $("region").value.trim(),
-      store: $("store").value.trim(),
       location: $("location").value.trim(),
       mapsUrl: $("mapsUrl").value.trim(),
-      status: $("status").value,
+      status: state.products.find((product) => product.id === $("itemId").value)?.status || "pending",
       image: imageUrl,
       lat: 34.3977,
       lng: 132.4759
@@ -699,8 +1001,50 @@ $("search").addEventListener("input", (event) => {
   state.search = event.target.value;
   render();
 });
+$("cards").addEventListener("click", (event) => {
+  const action = event.target.closest("[data-product-action]");
+  if (!action) return;
+  const id = action.dataset.productId;
+  if (action.dataset.productAction === "edit") openDrawer(id);
+  if (action.dataset.productAction === "delete") removeItem(id);
+  if (action.dataset.productAction === "map") showToast("尚未設定 Google Maps 連結", "warn");
+});
 $("resetFilters").addEventListener("click", resetFilters);
 $("addItem").addEventListener("click", () => openDrawer());
+$("tripManager").addEventListener("click", openTripPage);
+$("backToProducts").addEventListener("click", closeTripPage);
+$("newTrip").addEventListener("click", newTripEditor);
+$("tripList").addEventListener("click", (event) => {
+  const action = event.target.closest("[data-trip-action]");
+  if (action?.dataset.tripAction === "edit") editTrip(action.dataset.tripId);
+});
+$("addTripDetail").addEventListener("click", () => {
+  if (!requireAuthentication()) return;
+  state.tripEditorDetails.push(blankTripDetail());
+  renderTripPage();
+});
+const updateTripDetailField = (event) => {
+  const field = event.target.closest("[data-detail-field]");
+  const row = event.target.closest("[data-detail-index]");
+  if (!field || !row) return;
+  const detail = state.tripEditorDetails[Number(row.dataset.detailIndex)];
+  if (!detail) return;
+  detail[field.dataset.detailField] = field.value;
+};
+$("tripDetailsRows").addEventListener("input", updateTripDetailField);
+$("tripDetailsRows").addEventListener("change", updateTripDetailField);
+$("tripDetailsRows").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-detail-action=\"remove\"]");
+  if (!button) return;
+  const row = button.closest("[data-detail-index]");
+  state.tripEditorDetails.splice(Number(row.dataset.detailIndex), 1);
+  renderTripPage();
+});
+$("tripForm").addEventListener("submit", handleTripSubmit);
+$("trip").addEventListener("change", (event) => {
+  const trip = state.trips.find((item) => item.id === event.target.value);
+  if (trip && !$("region").value.trim()) $("region").value = trip.primaryLocation || "";
+});
 $("authButton").addEventListener("click", async () => {
   if (!remoteReady()) return;
   if (authenticated()) {
@@ -740,6 +1084,8 @@ async function boot() {
     await initAuth();
     updateAuthUI();
     state.products = await loadProducts();
+    if (!remote.tripDataLoaded) await loadTripsFromJson();
+    ensureTripsFromProducts(state.products);
     initFilters();
     render();
     subscribeToRemoteChanges();

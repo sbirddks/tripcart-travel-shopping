@@ -1,0 +1,28 @@
+{
+  "details": [
+    {
+      "id": "hiroshima-detail-1",
+      "tripId": "hiroshima-3d2n",
+      "attraction": "宮島／廣島市區",
+      "startDate": "",
+      "endDate": "",
+      "transportType": "JR",
+      "transportDetail": "JR 山陽本線",
+      "cost": "",
+      "currency": "JPY",
+      "sortOrder": 0
+    },
+    {
+      "id": "okayama-detail-1",
+      "tripId": "okayama-2d1n",
+      "attraction": "岡山市區",
+      "startDate": "",
+      "endDate": "",
+      "transportType": "JR",
+      "transportDetail": "岡山車站",
+      "cost": "",
+      "currency": "JPY",
+      "sortOrder": 0
+    }
+  ]
+}
